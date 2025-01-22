@@ -41,39 +41,46 @@
                 <div class="card-body">
                     <form action="{{ route('polizas.store') }}" method="POST" enctype="multipart/form-data">
                         @csrf
+
+                        <!-- Selección de Compañía -->
                         <div class="mb-3">
-                            <label for="compania_id1" class="form-label">Compañía</label>
-                            <select class="form-select" name="compania_id" id="compania_id1" required>
+                            <label for="compania_id" class="form-label">Compañía</label>
+                            <select class="form-select" name="compania_id" id="compania_id" required>
                                 <option value="" disabled selected>Seleccione una compañía</option>
                                 @foreach ($companias as $compania)
                                     <option value="{{ $compania->id }}">{{ $compania->nombre }}</option>
                                 @endforeach
                             </select>
                         </div>
+
+                        <!-- Selección de Tipo de Seguro -->
                         <div class="mb-3">
-                            <label for="tipo_seguro_id1" class="form-label">Tipo de Seguro</label>
-                            <select class="form-select" name="tipo_seguro_id" id="tipo_seguro_id1" required>
-                                <option value="" disabled selected>Seleccione un tipo de seguro</option>
-                                @foreach ($seguros as $seguro)
-                                    <option value="{{ $seguro->id }}">{{ $seguro->nombre }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="subtipo_seguro_id1" class="form-label">Subtipo de Seguro</label>
-                            <select class="form-select" name="subtipo_seguro_id" id="subtipo_seguro_id1" required>
-                                <option value="" disabled selected>Seleccione un subtipo</option>
+                            <label for="seguro_id" class="form-label">Seguro</label>
+                            <select class="form-select" name="seguro_id" id="seguro_id" required>
+                                <option value="" disabled selected>Seleccione un seguro</option>
+                                <!-- Opciones cargadas dinámicamente -->
                             </select>
                         </div>
 
+                        <!-- Selección de Ramo -->
+                        <div class="mb-3">
+                            <label for="ramo_id" class="form-label">Ramo</label>
+                            <select class="form-select" name="ramo_id" id="ramo_id" required>
+                                <option value="" disabled selected>Seleccione un ramo</option>
+                                <!-- Opciones cargadas dinámicamente -->
+                            </select>
+                            <div id="loadingRamos" class="form-text text-muted d-none">Cargando ramos...</div>
+                        </div>
+
+                        <!-- Subida de PDF -->
                         <div class="mb-3">
                             <label for="pdf" class="form-label">Subir Archivo(s) PDF</label>
-                            <input class="form-control" type="file" name="pdf[]" multiple required>
+                            <input class="form-control" type="file" name="pdf[]" id="pdf" multiple required accept=".pdf">
                             <div class="form-text">Puedes seleccionar varios archivos presionando <b>Ctrl</b> o <b>Shift</b> mientras seleccionas.</div>
                         </div>
+
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-primary" id="submitBtn">Subir Pólizas</button>
+                            <button type="submit" class="btn btn-primary">Subir Pólizas</button>
                         </div>
                     </form>
                 </div>
@@ -84,44 +91,67 @@
 @endsection
 
 @section('css')
-<link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
 @stop
 
 @section('js')
 <script>
-   document.addEventListener('DOMContentLoaded', function () {
-    // Evento para actualizar los subtipos cuando se selecciona un tipo de seguro
-    document.getElementById('tipo_seguro_id1').addEventListener('change', function () {
-        const tipoSeguroId = this.value;
+document.addEventListener('DOMContentLoaded', function () {
+    const companiaSelect = document.getElementById('compania_id');
+    const seguroSelect = document.getElementById('seguro_id');
+    const ramoSelect = document.getElementById('ramo_id');
+    const loadingRamos = document.getElementById('loadingRamos');
 
-        // Solo hacer la solicitud si se ha seleccionado un tipo de seguro
-        if (tipoSeguroId) {
-            fetch(`/obtener-subtipos/${tipoSeguroId}`)
+    // Al seleccionar una compañía, cargar los seguros relacionados
+    companiaSelect.addEventListener('change', function () {
+        const companiaId = this.value;
+
+        if (companiaId) {
+            seguroSelect.innerHTML = '<option value="" disabled selected>Seleccione un seguro</option>';
+            ramoSelect.innerHTML = '<option value="" disabled selected>Seleccione un ramo</option>';
+            
+            fetch(`/obtener-seguros/${companiaId}`)
                 .then(response => response.json())
                 .then(data => {
-                    // Limpiar el select de subtipos
-                    const subtipoSelect = document.getElementById('subtipo_seguro_id1');
-                    subtipoSelect.innerHTML = '<option value="" disabled selected>Seleccione un subtipo</option>';
-
-                    // Agregar los subtipos al select
-                    data.forEach(subtipo => {
+                    data.forEach(seguro => {
                         const option = document.createElement('option');
-                        option.value = subtipo.id;
-                        option.textContent = subtipo.nombre;
-                        subtipoSelect.appendChild(option);
+                        option.value = seguro.id;
+                        option.textContent = seguro.nombre;
+                        seguroSelect.appendChild(option);
                     });
                 })
                 .catch(error => {
-                    console.error('Error:', error);
-                    alert('Hubo un error al cargar los subtipos. Intente nuevamente.');
+                    console.error('Error al cargar seguros:', error);
                 });
-        } else {
-            // Limpiar el select de subtipos si no se seleccionó tipo de seguro
-            document.getElementById('subtipo_seguro_id1').innerHTML = '<option value="" disabled selected>Seleccione un subtipo</option>';
+        }
+    });
+
+    // Al seleccionar un seguro, cargar los ramos relacionados
+    seguroSelect.addEventListener('change', function () {
+        const seguroId = this.value;
+
+        if (seguroId) {
+            ramoSelect.innerHTML = '<option value="" disabled selected>Seleccione un ramo</option>';
+            loadingRamos.classList.remove('d-none');
+
+            fetch(`/obtener-ramos/${seguroId}`)
+                .then(response => response.json())
+                .then(data => {
+                    loadingRamos.classList.add('d-none');
+                    data.forEach(ramos => {
+                        const option = document.createElement('option');
+                        option.value = ramos.id;
+                        option.textContent = ramos.nombre_ramo;
+                        ramoSelect.appendChild(option);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error al cargar ramos:', error);
+                    loadingRamos.textContent = 'Error al cargar ramos. Intenta nuevamente.';
+                    setTimeout(() => loadingRamos.classList.add('d-none'), 3000);
+                });
         }
     });
 });
-
 </script>
 @stop

@@ -35,8 +35,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Rutas de pólizas (solo admin puede gestionar pólizas)
         Route::resource('/polizas', PolizasController::class);
         // web.php
-        Route::get('/obtener-subtipos/{id}', [PolizasController::class, 'obtenerSubtipos']);
+     //   Route::post('/polizas/store', [PolizaController::class, 'store'])->name('polizas.store');
+        Route::post('/polizas/guardar', [PolizasController::class, 'guardar'])->name('polizas.guardar');
 
+        // Ruta para obtener los seguros relacionados con una compañía
+        Route::get('/obtener-seguros/{companiaId}', [PolizasController::class, 'obtenerSeguros'])->name('polizas.obtener-seguros');
+
+        // Ruta para obtener los ramos relacionados con un seguro
+        Route::get('/obtener-ramos/{seguroId}', [PolizasController::class, 'obtenerRamos'])->name('polizas.obtener-ramos');
+                
         Route::resource('/companias', CompaniasController::class);
         Route::resource('/seguros', SegurosRamoController::class);
 

@@ -6,11 +6,10 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Cliente;
 use App\Models\Compania;
-use App\Models\TipoSeguro;
+use App\Models\Seguro;
 use App\Models\Poliza;
 use App\Models\Agente;
-use App\Models\PagosSubsecuente;
-use App\Models\Seguro;
+use App\Models\Ramo;
 use Illuminate\Support\Facades\Storage;
 use Spatie\PdfToImage\Pdf;
 use thiagoalessio\TesseractOCR\TesseractOCR;
@@ -18,13 +17,18 @@ use \Imagick;
 use DateTime;
 use Exception;
 use Smalot\PdfParser\Parser;
+use App\Services\HdiSegurosService;
+
 
 
     class PolizasController extends Controller
     {
-        /**
-         * Display a listing of the resource.
-         */
+        protected $hdiSegurosService;
+
+    public function __construct(HdiSegurosService $hdiSegurosService)
+    {
+        $this->hdiSegurosService = $hdiSegurosService;
+    }
         public function index()
         {
             $polizas = Poliza::all();
@@ -32,17 +36,6 @@ use Smalot\PdfParser\Parser;
             $seguros = Seguro::all();
             return view('polizas.index', compact('polizas', 'companias', 'seguros'));
         }
-
-
-        // PolizaController.php
-
-        public function obtenerSubtipos($id)
-        {
-            $ramo = Ramo::where('id_ramo', $id)->get();
-            return response()->json($subtipos); // Devuelve los subtipos como JSON
-        }
-        
-                
 
         /**
          * Show the form for creating a new resource.
@@ -57,112 +50,80 @@ use Smalot\PdfParser\Parser;
             return view('polizas.create', compact('clientes', 'companias', 'seguros','polizas' ));
         }
 
-    public function store(Request $request)
+        // Método para obtener los seguros relacionados con una compañía
+    public function obtenerSeguros($companiaId)
     {
-        // Validar PDF
-        $request->validate([
-            'pdf.*' => 'mimes:pdf|max:10000',
-            'compania_id' => 'required|exists:companias,id',
-            'id_ramo' => 'required|exists:tipo_seguros,id',
-        ]);
-    
-        $compania_id = $request->input('compania_id');
-        $compania = Compania::find($compania_id);
-    
-        $tipo_seguro = $request->input('tipo_seguro_id');
-        $tipoSeguro = TipoSeguro::find($tipo_seguro);
-    
-        foreach ($request->file('pdf') as $file) {
-            // Almacenar el archivo PDF
-            $pdfPath = $file->store('Polizas', 'public');
-    
-            // Inicializar el parser de PDF
-            $parser = new Parser();
-    
+        try {
+            $seguros = Seguro::where('compania_id', $companiaId)->get(['id', 'nombre']);
+            return response()->json($seguros);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al cargar los seguros.'], 500);
+        }
+    }
+
+    // Método para obtener los ramos relacionados con un seguro
+    public function obtenerRamos($seguroId)
+    {
+        try {
+            $ramos = Ramo::where('id_seguros', $seguroId)->get(['id', 'nombre_ramo']);
+            return response()->json($ramos);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al cargar los ramos.'], 500);
+        }
+    }
+
+        public function store(Request $request)
+        {
+            $request->validate([
+                'archivo_pdf' => 'required|file|mimes:pdf|max:2048',
+            ]);
+        
+            $pdfPath = $request->file('archivo_pdf')->store('pdfs');
+            $hdiService = app(HdiSegurosService::class);
+        
             try {
-                // Parsear el PDF
-                $pdfParsed = $parser->parseFile(storage_path('app/public/' . $pdfPath));
-                $pages = $pdfParsed->getPages();
-    
-                if (!$pages || count($pages) === 0) {
-                    throw new \Exception('El archivo PDF no contiene páginas legibles.');
-                }
-    
-                $allText = '';
-                foreach ($pages as $page) {
-                    $allText .= $page->getText();
-                }
-            //  dd($allText);
-    
-                // Procesar según compañía y tipo
-                $metodos = [
-                    'HDI Seguros' => [
-                        'Seguro de Autos' => 'extraerDatosHdiAutos',
-                        'Seguro de Daños' => 'extraerDatosHdiDanios',
-                        'Seguro de Gastos Medicos' => 'extraerDatosHdiGastos',
-                    ],
-                    'Banorte Seguros' => 'extraerDatosBanorte',
-                    
-                ];
-    
-                $metodo = isset($metodos[$compania->nombre])
-                    ? (is_array($metodos[$compania->nombre])
-                        ? $metodos[$compania->nombre][$tipoSeguro->nombre] ?? null
-                        : $metodos[$compania->nombre])
-                    : null;
-    
-                if ($metodo && method_exists($this, $metodo)) {
-                    $datos = $this->$metodo($allText);
-                } else {
-                    return redirect()->back()->with('error', 'Tipo de seguro o compañía no identificados.');
-                }
-    
-                // Procesar cliente
-                $cliente = Cliente::firstOrCreate(
-                    ['rfc' => $datos['rfc']],
-                    ['nombre_completo' => $datos['nombre_cliente']]
-                );
-    
-                // Extraer vigencia
-                if (preg_match('/Vigencia:\s*Desde.*?(\d{2}\/\d{2}\/\d{4}).*?Hasta.*?(\d{2}\/\d{2}\/\d{4})/', $allText, $matches)) {
-                    $datos['vigencia_inicio'] = $this->convertirFecha($matches[1]);
-                    $datos['vigencia_fin'] = $this->convertirFecha($matches[2]);
-                } else {
-                    \Log::warning('No se encontró la vigencia en el PDF. Archivo: ' . $pdfPath);
-                }
-    
-                // Procesar agente
-                $agente = Agente::firstOrCreate(
-                    ['numero_agentes' => $datos['numero_agente']],
-                    ['nombre_agentes' => $datos['nombre_agente']]
-                );
-    
-                // Guardar póliza
-                Poliza::create([
-                    'cliente_id' => $cliente->id,
-                    'compania_id' => $compania_id,
-                    'agente_id' => $agente->id,
-                    'tipo_seguro_id' => $tipoSeguro->id,
-                    'numero_poliza' => $datos['numero_poliza'] ?? 'No disponible',
-                    'vigencia_inicio' => $datos['vigencia_inicio'] ?? null,
-                    'vigencia_fin' => $datos['vigencia_fin'] ?? null,
-                    'forma_pago' => $datos['forma_pago'] ?? 'No especificada',
-                    'total_a_pagar' => isset($datos['total_pagar']) ? floatval(str_replace(',', '', $datos['total_pagar'])) : 0,
-                    'archivo_pdf' => $pdfPath,
-                    'pagos_capturados' => false,
+                $data = $hdiService->extractAutosPickup(storage_path('app/' . $pdfPath));
+        
+                // Crear la póliza con los datos extraídos
+                $poliza = Poliza::create([
+                    'numero_poliza' => $data['numero_poliza'],
+                    'vigencia_inicio' => $data['vigencia_inicio'],
+                    'vigencia_fin' => $data['vigencia_fin'],
+                    'forma_pago' => $data['forma_pago'],
+                    'total_a_pagar' => $data['total_a_pagar'],
+                    'cliente_id' => $data['cliente']->id,
+                    'agente_id' => $data['agente']->id ?? null,
                 ]);
-    
+        
+                return redirect()->route('polizas.index')->with('success', 'Póliza creada con éxito.');
             } catch (\Exception $e) {
-                \Log::error('Error al procesar el archivo PDF: ' . $e->getMessage(), [
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                ]);
-                return redirect()->back()->with('error', 'Error al procesar el archivo PDF: ' . $file->getClientOriginalName());
+                \Log::error('Error al procesar el PDF: ' . $e->getMessage());
+                return redirect()->back()->withErrors(['error' => 'Hubo un problema al procesar el archivo PDF.']);
             }
         }
-    
-        return redirect()->back()->with('success', 'Las pólizas han sido subidas y procesadas exitosamente.');
+        public function guardar(Request $request)
+{
+    $datosExtraidos = json_decode($request->input('datos'), true);
+
+    foreach ($datosExtraidos as $datos) {
+        Poliza::create([
+            'numero_poliza' => $datos['numero_poliza'],
+            'vigencia_inicio' => $datos['vigencia_inicio'],
+            'vigencia_fin' => $datos['vigencia_fin'],
+            'forma_pago' => $datos['forma_pago'],
+            'total_a_pagar' => $datos['total_a_pagar'],
+            'cliente_id' => Cliente::firstOrCreate(['rfc' => $datos['rfc']], ['nombre_completo' => $datos['nombre_cliente']])->id,
+            'archivo_pdf' => $datos['archivo_pdf'],
+            'compania_id' => $request->compania_id,
+            'seguro_id' => $request->seguro_id,
+            'ramo_id' => $request->ramo_id,
+        ]);
     }
+
+    return redirect()->route('polizas.index')->with('success', 'Pólizas guardadas correctamente.');
+}
+
+        
     
         // Función para convertir la fecha
         public function convertirFecha($fecha)
