@@ -72,55 +72,80 @@ use App\Services\HdiSegurosService;
         }
     }
 
-        public function store(Request $request)
-        {
-            $request->validate([
-                'archivo_pdf' => 'required|file|mimes:pdf|max:2048',
-            ]);
-        
-            $pdfPath = $request->file('archivo_pdf')->store('pdfs');
-            $hdiService = app(HdiSegurosService::class);
-        
+    public function store(Request $request)
+{
+    // Validación de los datos enviados desde el formulario
+    $request->validate([
+        'compania_id' => 'required|exists:companias,id',
+        'seguro_id' => 'required|exists:seguros,id',
+        'ramo_id' => 'required|exists:ramos,id',
+        'pdf' => 'required|array', // para múltiples archivos
+        'pdf.*' => 'mimes:pdf|max:10000', // Validar que cada archivo sea PDF y no supere los 10MB
+    ]);
+
+    try {
+        // Verificar que el seguro pertenece a la compañía seleccionada
+        $seguroValido = Seguro::where('id', $request->seguro_id)
+            ->where('compania_id', $request->compania_id)
+            ->exists();
+
+        if (!$seguroValido) {
+            return redirect()->back()->withErrors('El seguro seleccionado no pertenece a la compañía seleccionada.');
+        }
+
+        // Verificar que el ramo pertenece al seguro seleccionado
+        $ramoValido = Ramo::where('id', $request->ramo_id)
+            ->where('seguro_id', $request->seguro_id)
+            ->exists();
+
+        if (!$ramoValido) {
+            return redirect()->back()->withErrors('El ramo seleccionado no pertenece al seguro seleccionado.');
+        }
+
+        foreach ($request->file('pdf') as $file) {
+            // Almacenar el archivo PDF
+            $rutaArchivo = $file->store('Polizas', 'public');
+
+            // Inicializar el parser de PDF
+            $parser = new Parser();
+
             try {
-                $data = $hdiService->extractAutosPickup(storage_path('app/' . $pdfPath));
-        
-                // Crear la póliza con los datos extraídos
-                $poliza = Poliza::create([
-                    'numero_poliza' => $data['numero_poliza'],
-                    'vigencia_inicio' => $data['vigencia_inicio'],
-                    'vigencia_fin' => $data['vigencia_fin'],
-                    'forma_pago' => $data['forma_pago'],
-                    'total_a_pagar' => $data['total_a_pagar'],
-                    'cliente_id' => $data['cliente']->id,
-                    'agente_id' => $data['agente']->id ?? null,
+                // Parsear el PDF
+                $pdfParsed = $parser->parseFile(storage_path('app/public/' . $rutaArchivo));
+                $pages = $pdfParsed->getPages();
+
+                if (!$pages || count($pages) === 0) {
+                    throw new \Exception('El archivo PDF no contiene páginas legibles.');
+                }
+
+                $allText = '';
+                foreach ($pages as $page) {
+                    $allText .= $page->getText();
+                }
+
+                // Crear la póliza en la base de datos
+                Poliza::create([
+                    'compania_id' => $request->compania_id,
+                    'seguro_id' => $request->seguro_id,
+                    'ramo_id' => $request->ramo_id,
+                    'archivo_pdf' => $rutaArchivo,
+                    'contenido_texto' => $allText, // Almacenar el texto extraído (si lo necesitas)
+                    'creado_por' => auth()->user()->id // Registrar quién subió la póliza
                 ]);
-        
-                return redirect()->route('polizas.index')->with('success', 'Póliza creada con éxito.');
             } catch (\Exception $e) {
-                \Log::error('Error al procesar el PDF: ' . $e->getMessage());
-                return redirect()->back()->withErrors(['error' => 'Hubo un problema al procesar el archivo PDF.']);
+                // Manejar errores en el análisis del PDF
+                \Log::error('Error al analizar el archivo PDF: ' . $e->getMessage());
+                return redirect()->back()->withErrors('Error al procesar el archivo PDF. Asegúrate de que sea un archivo válido.');
             }
         }
-        public function guardar(Request $request)
-{
-    $datosExtraidos = json_decode($request->input('datos'), true);
 
-    foreach ($datosExtraidos as $datos) {
-        Poliza::create([
-            'numero_poliza' => $datos['numero_poliza'],
-            'vigencia_inicio' => $datos['vigencia_inicio'],
-            'vigencia_fin' => $datos['vigencia_fin'],
-            'forma_pago' => $datos['forma_pago'],
-            'total_a_pagar' => $datos['total_a_pagar'],
-            'cliente_id' => Cliente::firstOrCreate(['rfc' => $datos['rfc']], ['nombre_completo' => $datos['nombre_cliente']])->id,
-            'archivo_pdf' => $datos['archivo_pdf'],
-            'compania_id' => $request->compania_id,
-            'seguro_id' => $request->seguro_id,
-            'ramo_id' => $request->ramo_id,
-        ]);
+        // Redireccionar con un mensaje de éxito
+        return redirect()->route('polizas.index')->with('success', 'Póliza(s) cargada(s) exitosamente.');
+    } catch (\Exception $e) {
+        // Manejar errores generales
+        \Log::error('Error al guardar la póliza: ' . $e->getMessage());
+        return redirect()->back()->withErrors('Ocurrió un error al guardar la póliza. Intenta nuevamente.');
     }
-
-    return redirect()->route('polizas.index')->with('success', 'Pólizas guardadas correctamente.');
 }
 
         

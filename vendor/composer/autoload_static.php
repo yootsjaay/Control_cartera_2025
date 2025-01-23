@@ -355,13 +355,13 @@ class ComposerStaticInitcbed58921fb40526dd756235091dd357
         ),
         'Spatie\\LaravelIgnition\\' => 
         array (
-            0 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/laravel-ignition',
-            1 => __DIR__ . '/..' . '/spatie/laravel-ignition/src',
+            0 => __DIR__ . '/..' . '/spatie/laravel-ignition/src',
+            1 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/laravel-ignition',
         ),
         'Spatie\\Ignition\\' => 
         array (
-            0 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/ignition',
-            1 => __DIR__ . '/..' . '/spatie/ignition/src',
+            0 => __DIR__ . '/..' . '/spatie/ignition/src',
+            1 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/ignition',
         ),
         'Spatie\\FlareClient\\' => 
         array (
@@ -680,7 +680,6 @@ class ComposerStaticInitcbed58921fb40526dd756235091dd357
         'App\\Models\\ModelHasRole' => __DIR__ . '/../..' . '/app/Models/ModelHasRole.php',
         'App\\Models\\Permission' => __DIR__ . '/../..' . '/app/Models/Permission.php',
         'App\\Models\\Poliza' => __DIR__ . '/../..' . '/app/Models/Poliza.php',
-        'App\\Models\\PolizaRamo' => __DIR__ . '/../..' . '/app/Models/PolizaRamo.php',
         'App\\Models\\Ramo' => __DIR__ . '/../..' . '/app/Models/Ramo.php',
         'App\\Models\\Role' => __DIR__ . '/../..' . '/app/Models/Role.php',
         'App\\Models\\RoleHasPermission' => __DIR__ . '/../..' . '/app/Models/RoleHasPermission.php',
@@ -691,6 +690,7 @@ class ComposerStaticInitcbed58921fb40526dd756235091dd357
         'App\\Providers\\BroadcastServiceProvider' => __DIR__ . '/../..' . '/app/Providers/BroadcastServiceProvider.php',
         'App\\Providers\\EventServiceProvider' => __DIR__ . '/../..' . '/app/Providers/EventServiceProvider.php',
         'App\\Providers\\RouteServiceProvider' => __DIR__ . '/../..' . '/app/Providers/RouteServiceProvider.php',
+        'App\\Services\\HdiSegurosService' => __DIR__ . '/../..' . '/app/Services/HdiSegurosService.php',
         'App\\View\\Components\\AppLayout' => __DIR__ . '/../..' . '/app/View/Components/AppLayout.php',
         'App\\View\\Components\\GuestLayout' => __DIR__ . '/../..' . '/app/View/Components/GuestLayout.php',
         'Attribute' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/Attribute.php',

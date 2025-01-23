@@ -24,7 +24,7 @@ return new class extends Migration
             $table->foreignId('compania_id')->constrained('companias')->onDelete('cascade');
             $table->foreignId('seguro_id')->constrained('seguros')->onDelete('cascade');
             $table->foreignId('ramo_id')->constrained('ramos')->onDelete('cascade');
-
+            
             // Índices para consultas frecuentes
             $table->index(['vigencia_inicio', 'vigencia_fin']);
         });

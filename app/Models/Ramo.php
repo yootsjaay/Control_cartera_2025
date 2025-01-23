@@ -44,8 +44,6 @@ class Ramo extends Model
 
 	public function polizas()
 	{
-		return $this->belongsToMany(Poliza::class)
-					->withPivot('id')
-					->withTimestamps();
+		return $this->hasMany(Poliza::class);
 	}
 }

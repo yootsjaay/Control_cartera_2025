@@ -7,7 +7,6 @@
 namespace App\Models;
 
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -26,11 +25,12 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $cliente_id
  * @property int $compania_id
  * @property int $seguro_id
+ * @property int $ramo_id
  * 
  * @property Cliente $cliente
  * @property Compania $compania
+ * @property Ramo $ramo
  * @property Seguro $seguro
- * @property Collection|Ramo[] $ramos
  *
  * @package App\Models
  */
@@ -44,7 +44,8 @@ class Poliza extends Model
 		'total_a_pagar' => 'float',
 		'cliente_id' => 'int',
 		'compania_id' => 'int',
-		'seguro_id' => 'int'
+		'seguro_id' => 'int',
+		'ramo_id' => 'int'
 	];
 
 	protected $fillable = [
@@ -57,7 +58,8 @@ class Poliza extends Model
 		'status',
 		'cliente_id',
 		'compania_id',
-		'seguro_id'
+		'seguro_id',
+		'ramo_id'
 	];
 
 	public function cliente()
@@ -70,15 +72,13 @@ class Poliza extends Model
 		return $this->belongsTo(Compania::class);
 	}
 
+	public function ramo()
+	{
+		return $this->belongsTo(Ramo::class);
+	}
+
 	public function seguro()
 	{
 		return $this->belongsTo(Seguro::class);
-	}
-
-	public function ramos()
-	{
-		return $this->belongsToMany(Ramo::class)
-					->withPivot('id')
-					->withTimestamps();
 	}
 }

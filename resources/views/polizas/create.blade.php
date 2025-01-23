@@ -86,7 +86,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> 
 </div>
 @endsection
 
@@ -94,7 +94,7 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
 @stop
 
-@section('js')
+@section('js')  
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const companiaSelect = document.getElementById('compania_id');
