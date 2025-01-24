@@ -71,82 +71,50 @@ use App\Services\HdiSegurosService;
             return response()->json(['error' => 'Error al cargar los ramos.'], 500);
         }
     }
-
     public function store(Request $request)
-{
-    // Validación de los datos enviados desde el formulario
-    $request->validate([
-        'compania_id' => 'required|exists:companias,id',
-        'seguro_id' => 'required|exists:seguros,id',
-        'ramo_id' => 'required|exists:ramos,id',
-        'pdf' => 'required|array', // para múltiples archivos
-        'pdf.*' => 'mimes:pdf|max:10000', // Validar que cada archivo sea PDF y no supere los 10MB
-    ]);
+    {
+        // Validación
+        $request->validate([
+            'compania_id' => 'required|exists:companias,id',
+            'seguro_id' => 'required|exists:seguros,id',
+            'ramo_id' => 'required|exists:ramos,id',
+            'pdf' => 'required|array',
+            'pdf.*' => 'mimes:pdf|max:2048', // Cada archivo debe ser un PDF de máximo 2 MB
+        ]);
 
-    try {
-        // Verificar que el seguro pertenece a la compañía seleccionada
-        $seguroValido = Seguro::where('id', $request->seguro_id)
-            ->where('compania_id', $request->compania_id)
-            ->exists();
+        try {
+            // Procesar los archivos PDF
+            if ($request->has('pdf')) {
+                foreach ($request->file('pdf') as $archivo) {
+                    // Obtener el contenido del PDF
+                    $pdfParser = new Parser();
+                    $pdf = $pdfParser->parseFile($archivo->getPathname());  // Usamos el path del archivo temporal
 
-        if (!$seguroValido) {
-            return redirect()->back()->withErrors('El seguro seleccionado no pertenece a la compañía seleccionada.');
-        }
-
-        // Verificar que el ramo pertenece al seguro seleccionado
-        $ramoValido = Ramo::where('id', $request->ramo_id)
-            ->where('seguro_id', $request->seguro_id)
-            ->exists();
-
-        if (!$ramoValido) {
-            return redirect()->back()->withErrors('El ramo seleccionado no pertenece al seguro seleccionado.');
-        }
-
-        foreach ($request->file('pdf') as $file) {
-            // Almacenar el archivo PDF
-            $rutaArchivo = $file->store('Polizas', 'public');
-
-            // Inicializar el parser de PDF
-            $parser = new Parser();
-
-            try {
-                // Parsear el PDF
-                $pdfParsed = $parser->parseFile(storage_path('app/public/' . $rutaArchivo));
-                $pages = $pdfParsed->getPages();
-
-                if (!$pages || count($pages) === 0) {
-                    throw new \Exception('El archivo PDF no contiene páginas legibles.');
+                    // Obtener el texto del PDF
+                    $texto = $pdf->getText();
+                    
+                    $extraerHdi= $this->request($hdiSegurosService->extractToData());
+                  
+                    dd($texto); // Para ver el texto extraído en el dump
                 }
-
-                $allText = '';
-                foreach ($pages as $page) {
-                    $allText .= $page->getText();
-                }
-
-                // Crear la póliza en la base de datos
-                Poliza::create([
-                    'compania_id' => $request->compania_id,
-                    'seguro_id' => $request->seguro_id,
-                    'ramo_id' => $request->ramo_id,
-                    'archivo_pdf' => $rutaArchivo,
-                    'contenido_texto' => $allText, // Almacenar el texto extraído (si lo necesitas)
-                    'creado_por' => auth()->user()->id // Registrar quién subió la póliza
-                ]);
-            } catch (\Exception $e) {
-                // Manejar errores en el análisis del PDF
-                \Log::error('Error al analizar el archivo PDF: ' . $e->getMessage());
-                return redirect()->back()->withErrors('Error al procesar el archivo PDF. Asegúrate de que sea un archivo válido.');
             }
-        }
 
-        // Redireccionar con un mensaje de éxito
-        return redirect()->route('polizas.index')->with('success', 'Póliza(s) cargada(s) exitosamente.');
-    } catch (\Exception $e) {
-        // Manejar errores generales
-        \Log::error('Error al guardar la póliza: ' . $e->getMessage());
-        return redirect()->back()->withErrors('Ocurrió un error al guardar la póliza. Intenta nuevamente.');
+            // Crear la clase de seguro dependiendo de la compañía y el seguro seleccionados
+            $seguro = SeguroFactory::crearSeguro($request->compania_id, $request->seguro_id);
+            $cobertura = $seguro->obtenerCobertura();
+
+            return redirect()->route('polizas.index')->with('success', 'Póliza cargada exitosamente.');
+        } catch (\Exception $e) {
+            \Log::error('Error al procesar el PDF: ' . $e->getMessage());
+            return redirect()->back()->withErrors([
+                'general' => 'Ocurrió un error al procesar el PDF. Intenta nuevamente.'
+            ]);
+        }
     }
-}
+
+    
+
+
 
         
     

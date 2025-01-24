@@ -30,4 +30,9 @@ class User extends Authenticatable
 		'password',
 		'remember_token'
 	];
+
+	public function polizas()
+	{
+		return $this->hasMany(Poliza::class, 'creado_por');
+	}
 }

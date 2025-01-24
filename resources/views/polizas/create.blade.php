@@ -72,12 +72,15 @@
                             <div id="loadingRamos" class="form-text text-muted d-none">Cargando ramos...</div>
                         </div>
 
+                    
                         <!-- Subida de PDF -->
-                        <div class="mb-3">
-                            <label for="pdf" class="form-label">Subir Archivo(s) PDF</label>
-                            <input class="form-control" type="file" name="pdf[]" id="pdf" multiple required accept=".pdf">
-                            <div class="form-text">Puedes seleccionar varios archivos presionando <b>Ctrl</b> o <b>Shift</b> mientras seleccionas.</div>
-                        </div>
+                    <div class="mb-3">
+                        <label for="pdf" class="form-label">Subir Archivo(s) PDF</label>
+                        <input class="form-control" type="file" name="pdf[]" id="pdf" multiple required accept=".pdf">
+                        <div class="form-text">Puedes seleccionar varios archivos presionando <b>Ctrl</b> o <b>Shift</b> mientras seleccionas.</div>
+                        <small class="text-muted">Límite máximo de 10 archivos. Cada archivo no debe superar los 10MB.</small>
+                    </div>
+
 
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary">Subir Pólizas</button>

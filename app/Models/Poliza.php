@@ -26,9 +26,11 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $compania_id
  * @property int $seguro_id
  * @property int $ramo_id
+ * @property int|null $creado_por
  * 
  * @property Cliente $cliente
  * @property Compania $compania
+ * @property User|null $user
  * @property Ramo $ramo
  * @property Seguro $seguro
  *
@@ -45,7 +47,8 @@ class Poliza extends Model
 		'cliente_id' => 'int',
 		'compania_id' => 'int',
 		'seguro_id' => 'int',
-		'ramo_id' => 'int'
+		'ramo_id' => 'int',
+		'creado_por' => 'int'
 	];
 
 	protected $fillable = [
@@ -59,7 +62,8 @@ class Poliza extends Model
 		'cliente_id',
 		'compania_id',
 		'seguro_id',
-		'ramo_id'
+		'ramo_id',
+		'creado_por'
 	];
 
 	public function cliente()
@@ -70,6 +74,11 @@ class Poliza extends Model
 	public function compania()
 	{
 		return $this->belongsTo(Compania::class);
+	}
+
+	public function user()
+	{
+		return $this->belongsTo(User::class, 'creado_por');
 	}
 
 	public function ramo()
