@@ -16,19 +16,15 @@ use thiagoalessio\TesseractOCR\TesseractOCR;
 use \Imagick; 
 use DateTime;
 use Exception;
+use App\Factories\SeguroFactory;
+use App\Services\SeguroServiceInterface;
 use Smalot\PdfParser\Parser;
-use App\Services\HdiSegurosService;
 
 
 
     class PolizasController extends Controller
     {
-        protected $hdiSegurosService;
-
-    public function __construct(HdiSegurosService $hdiSegurosService)
-    {
-        $this->hdiSegurosService = $hdiSegurosService;
-    }
+        
         public function index()
         {
             $polizas = Poliza::all();
@@ -86,22 +82,16 @@ use App\Services\HdiSegurosService;
             // Procesar los archivos PDF
             if ($request->has('pdf')) {
                 foreach ($request->file('pdf') as $archivo) {
-                    // Obtener el contenido del PDF
-                    $pdfParser = new Parser();
-                    $pdf = $pdfParser->parseFile($archivo->getPathname());  // Usamos el path del archivo temporal
+                    // Obtener el servicio adecuado según la compañía seleccionada
+                    $seguroService = SeguroFactory::crearSeguroService($request->compania_id);
 
-                    // Obtener el texto del PDF
-                    $texto = $pdf->getText();
-                    
-                    $extraerHdi= $this->request($hdiSegurosService->extractToData());
-                  
-                    dd($texto); // Para ver el texto extraído en el dump
+                    // Extraer datos del PDF usando el servicio de la compañía
+                    $texto = $seguroService->extractToData($archivo);
+
+                    // Aquí puedes procesar el texto como necesites
+                    dd($texto);  // Muestra el texto extraído para depuración
                 }
             }
-
-            // Crear la clase de seguro dependiendo de la compañía y el seguro seleccionados
-            $seguro = SeguroFactory::crearSeguro($request->compania_id, $request->seguro_id);
-            $cobertura = $seguro->obtenerCobertura();
 
             return redirect()->route('polizas.index')->with('success', 'Póliza cargada exitosamente.');
         } catch (\Exception $e) {

@@ -3,7 +3,7 @@ namespace App\Services;
 
 use Smalot\PdfParser\Parser;
 
-class HdiSegurosService implements SeguroServiceInterface
+class BanorteSeguroService implements SeguroServiceInterface
 {
     public function extractToData($pdfFile)
     {
