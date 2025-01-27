@@ -9,8 +9,7 @@ class SeguroFactory
 {
     public static function crearSeguroService($companiaId): SeguroServiceInterface
     {
-        // Aquí puedes hacer una lógica para decidir qué servicio usar
-        // En este ejemplo, vamos a asignar manualmente para HDI Seguros o Automovil Familiar
+        
         switch ($companiaId) {
             case 1:  // ID de HDI Seguros
                 return new HdiSegurosService();
