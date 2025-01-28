@@ -64,23 +64,23 @@ class SegurosRamoController extends Controller
         $companias = Compania::all();
         return view('seguros.edit', compact('seguro', 'companias'));
     }
-
+    
     // Actualizar un seguro y sus ramos
     public function update(Request $request, Seguro $seguro)
     {
         $request->validate([
-            'nombre' => 'required|string|max:255|unique:seguros,name,' . $seguro->id,
+            'nombre' => 'required|string|max:255|unique:seguros,nombre,' . $seguro->id, // Cambiado 'name' a 'nombre'
             'compania_id' => 'required|exists:companias,id',
             'ramos' => 'required|array',
             'ramos.*.nombre_ramo' => 'required|string|max:255',
         ]);
-
+    
         // Actualizar el seguro
         $seguro->update([
             'nombre' => $request->nombre,
             'compania_id' => $request->compania_id,
         ]);
-
+    
         // Actualizar los ramos, eliminando los existentes y agregando los nuevos
         $seguro->ramos()->delete();  // Eliminar ramos antiguos
         foreach ($request->ramos as $ramoData) {
@@ -88,10 +88,10 @@ class SegurosRamoController extends Controller
                 'nombre_ramo' => $ramoData['nombre_ramo'],
             ]);
         }
-
+    
         return redirect()->route('seguros.index')->with('success', 'Seguro y ramos actualizados correctamente');
     }
-
+    
     // Eliminar un seguro y sus ramos
     public function destroy(Seguro $seguro)
     {

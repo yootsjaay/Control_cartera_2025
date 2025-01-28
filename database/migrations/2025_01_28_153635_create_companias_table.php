@@ -11,9 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('polizas', function (Blueprint $table) {
-            $table->foreignId('creado_por')->nullable()->constrained('users')->onDelete('set null')->after('ramo_id');
-
+        Schema::create('companias', function (Blueprint $table) {
+            $table->id();
+            $table->string('nombre',255);
+            $table->string('slug',255)->unique();
+            $table->string('clase',255);
+            $table->timestamps();
         });
     }
 
@@ -22,9 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('polizas', function (Blueprint $table) {
-            $table->dropForeign(['creado_por']);
-            $table->dropColumn('creado_por');
-        });
+        Schema::dropIfExists('companias');
     }
 };

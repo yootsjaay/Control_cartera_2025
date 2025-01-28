@@ -4,67 +4,96 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Compania;
+
 class CompaniasController extends Controller
 {
-    // Mostrar todas las compañias
+    /**
+     * Mostrar el listado de compañías.
+     */
     public function index()
     {
         $companias = Compania::all();
-        return view('companias.index',compact('companias'));
+    
+        // Aquí defines las clases disponibles
+        $clases = [
+            'App\Services\QualitasSeguroService' => 'Qualitas Seguro Service',
+            'App\Services\OtroSeguroService' => 'Otro Seguro Service',
+        ];
+    
+        return view('companias.index', compact('companias', 'clases'));
     }
+    
 
-    // Mostrar el formulario para crear una nueva compañia
+    /**
+     * Muestra el formulario para crear una nueva compañía.
+     */
     public function create()
     {
-        // Este método lo usaríamos para vistas, si tuvieras una interfaz con Blade
-        return view('companias.create');
+        return view('companias.create'); // Vista del formulario de creación
     }
 
-    // Almacenar una nueva compañia
+    /**
+     * Almacena una nueva compañía en la base de datos.
+     */
     public function store(Request $request)
     {
-        $request->validate([
-            'nombre' => 'required|string|max:255|unique:companias',
+        // Validar los datos enviados
+        $validatedData = $request->validate([
+            'nombre' => 'required|string|max:255',
+            'slug' => 'required|string|max:255|unique:companias,slug',
+            'clase' => 'required|string|max:255',
         ]);
 
-        $compania = Compania::create([
-            'nombre' => $request->nombre,
-        ]);
+        // Crear y guardar la compañía
+        Compania::create($validatedData);
 
-        return response()->json($compania, 201);  // Retorna la compañia recién creada
+        // Redirigir al listado con un mensaje de éxito
+        return redirect()->route('companias.index')->with('success', 'Compañía creada exitosamente.');
     }
 
-    // Mostrar una compañia específica
+    /**
+     * Mostrar los detalles de una compañía específica.
+     */
     public function show(Compania $compania)
     {
-        return response()->json($compania);
+        return view('companias.show', compact('compania')); // Vista de detalles
     }
 
-    // Mostrar el formulario para editar una compañia
+    /**
+     * Muestra el formulario para editar una compañía.
+     */
     public function edit(Compania $compania)
     {
-        // Este método lo usaríamos para vistas, si tuvieras una interfaz con Blade
-        return view('companias.edit', compact('compania'));
+        return view('companias.edit', compact('compania')); // Vista del formulario de edición
     }
 
-    // Actualizar una compañia existente
+    /**
+     * Actualiza la información de una compañía.
+     */
     public function update(Request $request, Compania $compania)
     {
-        $request->validate([
-            'nombre' => 'required|string|max:255|unique:companias,name,' . $compania->id,
+        // Validar los datos actualizados
+        $validatedData = $request->validate([
+            'nombre' => 'required|string|max:255',
+            'slug' => 'required|string|max:255|unique:companias,slug,' . $compania->id,
+            'clase' => 'required|string|max:255',
         ]);
 
-        $compania->update([
-            'nombre' => $request->nombre,
-        ]);
+        // Actualizar la compañía
+        $compania->update($validatedData);
 
-        return response()->json($compania);
+        // Redirigir al listado con un mensaje de éxito
+        return redirect()->route('companias.index')->with('success', 'Compañía actualizada exitosamente.');
     }
 
-    // Eliminar una compañia
+    /**
+     * Elimina una compañía de la base de datos.
+     */
     public function destroy(Compania $compania)
     {
         $compania->delete();
-        return response()->json(['message' => 'Compañía eliminada con éxito.']);
+
+        // Redirigir al listado con un mensaje de éxito
+        return redirect()->route('companias.index')->with('success', 'Compañía eliminada exitosamente.');
     }
 }

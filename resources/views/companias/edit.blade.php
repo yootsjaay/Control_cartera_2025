@@ -1,4 +1,3 @@
-
 @extends('adminlte::page')
 
 @section('title', 'Editar Compañía')
@@ -22,12 +21,38 @@
                 <form action="{{ route('companias.update', $compania->id) }}" method="POST">
                     @csrf
                     @method('PUT') <!-- Método para actualizar -->
-                    
-                    <div class="form-group">
+
+                    <!-- Nombre -->
+                    <div class="form-group mb-3">
                         <label for="nombre">Nombre de la Compañía</label>
                         <input type="text" name="nombre" id="nombre" class="form-control" value="{{ old('nombre', $compania->nombre) }}" required>
                         @if ($errors->has('nombre'))
                             <span class="text-danger">{{ $errors->first('nombre') }}</span>
+                        @endif
+                    </div>
+
+                    <!-- Slug -->
+                    <div class="form-group mb-3">
+                        <label for="slug">Slug</label>
+                        <input type="text" name="slug" id="slug" class="form-control" value="{{ old('slug', $compania->slug) }}" required>
+                        @if ($errors->has('slug'))
+                            <span class="text-danger">{{ $errors->first('slug') }}</span>
+                        @endif
+                    </div>
+
+                    <!-- Clase -->
+                    <div class="form-group mb-3">
+                        <label for="clase">Clase</label>
+                        <select name="clase" id="clase" class="form-control" required>
+                            <option value="" disabled>Seleccione una clase</option>
+                            @foreach ($clases as $clase => $nombre)
+                                <option value="{{ $clase }}" {{ old('clase', $compania->clase) == $clase ? 'selected' : '' }}>
+                                    {{ $nombre }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @if ($errors->has('clase'))
+                            <span class="text-danger">{{ $errors->first('clase') }}</span>
                         @endif
                     </div>
 

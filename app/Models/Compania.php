@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Model;
  * 
  * @property int $id
  * @property string $nombre
+ * @property string $slug
+ * @property string $clase
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
@@ -28,7 +30,9 @@ class Compania extends Model
 	protected $table = 'companias';
 
 	protected $fillable = [
-		'nombre'
+		'nombre',
+		'slug',
+		'clase'
 	];
 
 	public function polizas()

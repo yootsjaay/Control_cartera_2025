@@ -7,7 +7,6 @@
 namespace App\Models;
 
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -20,7 +19,6 @@ use Illuminate\Database\Eloquent\Model;
  * @property Carbon|null $updated_at
  * 
  * @property Seguro $seguro
- * @property Collection|Poliza[] $polizas
  *
  * @package App\Models
  */
@@ -40,10 +38,5 @@ class Ramo extends Model
 	public function seguro()
 	{
 		return $this->belongsTo(Seguro::class, 'id_seguros');
-	}
-
-	public function polizas()
-	{
-		return $this->hasMany(Poliza::class);
 	}
 }

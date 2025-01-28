@@ -7,7 +7,7 @@
     <h1 class="mt-4 text-center">Crear Compañía</h1>
     <ol class="breadcrumb mb-4">
         <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Inicio</a></li>
-        <li class="breadcrumb-item"><a href="{{ route('companias.index') }}">Compañía</a></li>
+        <li class="breadcrumb-item"><a href="{{ route('companias.index') }}">Compañías</a></li>
         <li class="breadcrumb-item active">Crear</li>
     </ol>
 
@@ -17,23 +17,49 @@
             Crear Compañía
         </div>
         <div class="card-body">
-            <div class="form-container">
-                <form action="{{ route('companias.store') }}" method="POST">
-                    @csrf
+            <form action="{{ route('companias.store') }}" method="POST">
+                @csrf
 
-                    <div class="form-group">
-                        <label for="nombre">Nombre de la Compañía</label>
-                        <input type="text" name="nombre" id="nombre" class="form-control" value="{{ old('nombre') }}" required>
-                        @if ($errors->has('nombre'))
-                            <span class="text-danger">{{ $errors->first('nombre') }}</span>
-                        @endif
-                    </div>
+                <!-- Campo Nombre -->
+                <div class="form-group">
+                    <label for="nombre">Nombre de la Compañía</label>
+                    <input type="text" name="nombre" id="nombre" class="form-control" value="{{ old('nombre') }}" required>
+                    @error('nombre')
+                        <span class="text-danger">{{ $message }}</span>
+                    @enderror
+                </div>
 
-                    <div class="col-12 text-center">
-                        <button type="submit" class="btn btn-primary mt-3">Crear Compañía</button>
-                    </div>
-                </form>
-            </div>
+                <!-- Campo Slug -->
+                <div class="form-group mt-3">
+                    <label for="slug">Slug</label>
+                    <input type="text" name="slug" id="slug" class="form-control" value="{{ old('slug') }}" required>
+                    @error('slug')
+                        <span class="text-danger">{{ $message }}</span>
+                    @enderror
+                    <small class="form-text text-muted">El slug es un identificador único para la compañía.</small>
+                </div>
+
+                <!-- Campo Clase -->
+                <div class="form-group mt-3">
+                    <label for="clase">Clase</label>
+                    <select name="clase" id="clase" class="form-control" required>
+                        <option value="" disabled selected>Seleccione una clase</option>
+                        @foreach ($clases as $nombre => $clase)
+                            <option value="{{ $clase }}" {{ old('clase') == $clase ? 'selected' : '' }}>
+                                {{ $nombre }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('clase')
+                        <span class="text-danger">{{ $message }}</span>
+                    @enderror
+                </div>
+
+                <!-- Botón -->
+                <div class="col-12 text-center">
+                    <button type="submit" class="btn btn-primary mt-3">Crear Compañía</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -42,10 +68,10 @@
 @section('css')
 <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-@stop
+@endsection
 
 @section('js')
-    <script>
-        console.log('Página lista.');
-    </script>
-@stop
+<script>
+    console.log('Página lista.');
+</script>
+@endsection

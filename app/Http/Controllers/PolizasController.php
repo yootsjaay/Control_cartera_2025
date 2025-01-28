@@ -123,13 +123,6 @@ use Smalot\PdfParser\Parser;
             }
         }
         
-    
-        
-    
-    
-
-
-    
 
     public function show(string $id)
     {

@@ -159,7 +159,7 @@ class HdiSegurosService implements SeguroServiceInterface
         // Retornar todos los datos extraídos
         return $datos;
     }
-            private function extraerDatosHdiGastos($text) {
+    private function extraerDatosHdiGastos($text) {
                 $datos = [];
             
                 // Extrae Numero de poliza
