@@ -2,78 +2,122 @@
 
 @section('title', 'Editar Seguro')
 
-@section('extra-styles')
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-<link href="https://cdn.jsdelivr.net/npm/font-awesome@5.15.4/css/all.min.css" rel="stylesheet" />
-@endsection
-
 @section('content')
-<div class="container-fluid px-4">
-    <h1 class="mt-4 text-center">Editar Seguro</h1>
-    <ol class="breadcrumb mb-4">
-        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Inicio</a></li>
-        <li class="breadcrumb-item"><a href="{{ route('seguros.index') }}">Lista de Seguros</a></li>
-        <li class="breadcrumb-item active">Editar Seguro</li>
-    </ol>
-
-    {{-- Mostrar errores de validación --}}
-    @if ($errors->any())
-        <div class="alert alert-danger">
-            <ul>
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="m-0 text-dark text-center">Editar Seguro</h1>
+            <ol class="breadcrumb float-sm-right">
+                <li class="breadcrumb-item"><a href="{{ route('dashboard') }}"><i class="fas fa-home"></i> Inicio</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('seguros.index') }}"><i class="fas fa-shield-alt"></i> Seguros</a></li>
+                <li class="breadcrumb-item active">Editar Seguro</li>
+            </ol>
         </div>
-    @endif
+    </div>
 
-    <div class="card">
+    <div class="card card-outline card-primary">
         <div class="card-header">
-            <h4 class="mb-0">Detalles del Seguro</h4>
+            <h3 class="card-title">Información del Seguro</h3>
+            <div class="card-tools">
+                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                    <i class="fas fa-minus"></i>
+                </button>
+            </div>
         </div>
+
         <div class="card-body">
-            <form action="{{ route('seguros.update', $seguro->id) }}" method="POST">
+            <form action="{{ route('seguros.update', $seguro->id) }}" method="POST" id="seguroForm">
                 @csrf
                 @method('PUT')
 
-                <!-- Nombre del Seguro -->
-                <div class="form-group mb-3">
-                    <label for="nombre" class="form-label">Nombre del Seguro</label>
-                    <input type="text" name="nombre" id="nombre" class="form-control" value="{{ old('nombre', $seguro->nombre) }}" required>
-                </div>
-
-                <!-- Compañía -->
-                <div class="form-group mb-3">
-                    <label for="compania_id" class="form-label">Compañía</label>
-                    <select name="compania_id" id="compania_id" class="form-select" required>
-                        <option value="">Selecciona una Compañía</option>
-                        @foreach($companias as $compania)
-                            <option value="{{ $compania->id }}" {{ old('compania_id', $seguro->compania_id) == $compania->id ? 'selected' : '' }}>
-                                {{ $compania->nombre }}
-                            </option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <!-- Ramos -->
-                <div id="ramos">
-                    <h4 class="mt-4">Ramos</h4>
-                    @foreach($seguro->ramos as $index => $ramo)
-                        <div class="ramo-group mb-2">
-                            <input type="text" name="ramos[{{ $index }}][nombre_ramo]" class="form-control" value="{{ old('ramos.'.$index.'.nombre_ramo', $ramo->nombre_ramo) }}" placeholder="Nombre del Ramo" required>
-                            <button type="button" class="remove-btn btn btn-danger mt-2" onclick="removeRamo(this)">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="nombre">Nombre del Seguro <span class="text-danger">*</span></label>
+                            <input type="text" name="nombre" id="nombre" 
+                                   class="form-control @error('nombre') is-invalid @enderror" 
+                                   value="{{ old('nombre', $seguro->nombre) }}"
+                                   required
+                                   autofocus>
+                            @error('nombre')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
-                    @endforeach
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="compania_id">Compañía <span class="text-danger">*</span></label>
+                            <select name="compania_id" id="compania_id" 
+                                    class="form-control select2 @error('compania_id') is-invalid @enderror" 
+                                    required>
+                                <option value=""></option>
+                                @foreach($companias as $compania)
+                                    <option value="{{ $compania->id }}" 
+                                        {{ old('compania_id', $seguro->compania_id) == $compania->id ? 'selected' : '' }}>
+                                        {{ $compania->nombre }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('compania_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Botón para agregar más Ramos -->
-                <button type="button" class="btn btn-secondary mt-2" onclick="addRamo()">Agregar Otro Ramo</button>
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <h4 class="mb-3">Ramos del Seguro <span class="text-danger">*</span></h4>
+                        <div id="ramos-container">
+                            @php
+                                $oldRamos = old('ramos', $seguro->ramos->map(function($ramo) {
+                                    return ['nombre_ramo' => $ramo->nombre_ramo];
+                                })->toArray());
+                            @endphp
 
-                <!-- Botón de Guardar -->
-                <div class="text-center mt-4">
-                    <button type="submit" class="btn btn-primary">Actualizar Seguro</button>
+                            @foreach($oldRamos as $index => $ramo)
+                                <div class="ramo-group input-group mb-2">
+                                    <input type="text" name="ramos[{{ $index }}][nombre_ramo]" 
+                                           class="form-control @if($errors->has("ramos.$index.nombre_ramo")) is-invalid @endif" 
+                                           value="{{ $ramo['nombre_ramo'] }}"
+                                           placeholder="Nombre del ramo"
+                                           required>
+                                    <div class="input-group-append">
+                                        @if($loop->first)
+                                            <button type="button" class="btn btn-success add-ramo">
+                                                <i class="fas fa-plus"></i>
+                                            </button>
+                                        @else
+                                            <button type="button" class="btn btn-danger remove-ramo">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        @endif
+                                    </div>
+                                    @if($errors->has("ramos.$index.nombre_ramo"))
+                                        <div class="invalid-feedback">
+                                            {{ $errors->first("ramos.$index.nombre_ramo") }}
+                                        </div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                        <small class="form-text text-muted">Mínimo 1 ramo requerido</small>
+                        @error('ramos')
+                            <div class="text-danger">{{ $message }}</div>
+                        @enderror
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col-12 text-right">
+                        <a href="{{ route('seguros.index') }}" class="btn btn-default">
+                            <i class="fas fa-times mr-2"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-2"></i> Actualizar Seguro
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -82,26 +126,91 @@
 @endsection
 
 @section('js')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-    let ramoCount = {{ count($seguro->ramos) }};
+$(document).ready(function() {
+    // Inicializar Select2
+    $('#compania_id').select2({
+        placeholder: "Seleccione una compañía",
+        allowClear: true,
+        width: '100%'
+    });
 
-    function addRamo() {
-        const ramosDiv = document.getElementById('ramos');
-        const ramoGroup = document.createElement('div');
-        ramoGroup.classList.add('ramo-group', 'mb-2');
-        ramoGroup.innerHTML = `
-            <input type="text" name="ramos[${ramoCount}][nombre_ramo]" class="form-control" placeholder="Nombre del Ramo" required>
-            <button type="button" class="remove-btn btn btn-danger mt-2" onclick="removeRamo(this)">
-                <i class="fas fa-trash"></i>
-            </button>
-        `;
-        ramosDiv.appendChild(ramoGroup);
-        ramoCount++;
+    // Manejar dinámicamente los ramos
+    let ramoIndex = {{ count($oldRamos) }};
+    
+    $('#ramos-container').on('click', '.add-ramo', function() {
+        const newGroup = $('<div class="ramo-group input-group mb-2">')
+            .append(
+                $('<input>').attr({
+                    type: 'text',
+                    name: `ramos[${ramoIndex}][nombre_ramo]`,
+                    class: 'form-control',
+                    placeholder: 'Nombre del ramo',
+                    required: true
+                }),
+                $('<div class="input-group-append">').append(
+                    $('<button type="button" class="btn btn-danger remove-ramo">')
+                        .html('<i class="fas fa-times"></i>')
+                )
+            );
+        
+        $('#ramos-container').append(newGroup);
+        ramoIndex++;
+        actualizarBotonesRemove();
+    });
+
+    $('#ramos-container').on('click', '.remove-ramo', function() {
+        if($('.ramo-group').length > 1) {
+            $(this).closest('.ramo-group').remove();
+            reindexRamos();
+            actualizarBotonesRemove();
+        }
+    });
+
+    function reindexRamos() {
+        ramoIndex = 0;
+        $('.ramo-group').each(function(index) {
+            $(this).find('input').attr('name', `ramos[${index}][nombre_ramo]`);
+            ramoIndex = index + 1;
+        });
     }
 
-    function removeRamo(button) {
-        const ramoGroup = button.parentElement;
-        ramoGroup.remove();
+    function actualizarBotonesRemove() {
+        $('.ramo-group').each(function(index) {
+            const removeBtn = $(this).find('.remove-ramo');
+            removeBtn.toggle(index > 0);
+        });
     }
+
+    // Validación del formulario
+    $('#seguroForm').on('submit', function(e) {
+        if($('.ramo-group').length === 0) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Debe agregar al menos un ramo',
+                confirmButtonColor: '#3085d6'
+            });
+        }
+    });
+
+    // Mostrar errores de validación para ramos
+    @if($errors->any())
+        @foreach($errors->keys() as $key)
+            @if(strpos($key, 'ramos.') === 0)
+                const errorKey = "{{ str_replace('.', '][', $key) }}";
+                const errorField = $(`[name="${errorKey}"]`);
+                errorField.addClass('is-invalid');
+                if(!errorField.next('.invalid-feedback').length) {
+                    errorField.after(
+                        `<div class="invalid-feedback">{{ $errors->first($key) }}</div>`
+                    );
+                }
+            @endif
+        @endforeach
+    @endif
+});
 </script>
 @endsection

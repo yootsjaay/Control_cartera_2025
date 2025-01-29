@@ -12,7 +12,8 @@ class SegurosRamoController extends Controller
     public function index()
     {
         $seguros = Seguro::with('ramos')->get();  // Trae los seguros junto con sus ramos
-        return view('seguros.index', compact('seguros'));
+        $companias =Compania::all();
+        return view('seguros.index', compact('seguros', 'companias'));
     }
 
     // Mostrar el formulario para crear un seguro y ramo

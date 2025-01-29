@@ -4,6 +4,7 @@ namespace App\Services;
 use Smalot\PdfParser\Parser;
 use App\Models\Seguro;
 use App\Models\Ramo;
+
 class HdiSegurosService implements SeguroServiceInterface
 {
     public function extractToData($pdfFile)
@@ -13,29 +14,34 @@ class HdiSegurosService implements SeguroServiceInterface
 
         // Extraer el texto del PDF
         $text = $pdf->getText();
-       // Identificar el seguro o ramo
-        if (stripos($text, 'HDI Autos') !== false) {
-            // Procesar seguro de autos
-            return $this->procesarAutos($text);
-        } elseif (stripos($text, 'Gastos Médicos') !== false) {
-            // Procesar seguro de gastos médicos
-            return $this->procesarGastosMedicos($text);
-        } elseif (stripos($text, 'Daños Materiales') !== false) {
-            // Procesar seguro de daños
-            return $this->procesarDaniosMateriales($text);
-        } else {
-            // Seguro o ramo no identificado
+
+        // 1️⃣ Identificar el seguro desde la base de datos
+        $seguro = Seguro::where(function ($query) use ($text) {
+            $query->whereRaw("LOWER(nombre) LIKE ?", ['%' . strtolower($text) . '%']);
+        })->first();
+
+        // 2️⃣ Identificar el ramo desde la base de datos
+        $ramo = Ramo::where(function ($query) use ($text) {
+            $query->whereRaw("LOWER(nombre) LIKE ?", ['%' . strtolower($text) . '%']);
+        })->first();
+
+        // 3️⃣ Si encontramos el seguro y el ramo, procesamos
+        if ($seguro && $ramo) {
             return [
-                'error' => 'No se pudo identificar el seguro o ramo en el documento.'
+                'seguro' => $seguro->nombre,
+                'ramo' => $ramo->nombre,
+                'detalles' => $this->procesarAutos($text, $seguro, $ramo)
             ];
         }
 
-      
-      return $extraerDatos;  
-      //return $this->procesarAutos($text);
+        // 4️⃣ Manejo de errores si no se encuentra
+        return [
+            'error' => 'No se pudo identificar el seguro o ramo en el documento.'
+        ];
     }
 
-    private function procesarAutos($text){
+
+    private function procesarAutos($text, $seguro, $ramos){
         $datos= [];
         // Extraer número de póliza
         if (preg_match('/Póliza:\s*([0-9\-]+)/', $text, $matches)) {

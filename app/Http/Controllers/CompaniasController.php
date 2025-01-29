@@ -4,6 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Compania;
+use App\Services\QualitasSeguroService;
+use App\Services\HdiSegurosService;
+use App\Services\GmxSeguroService;
+use App\Services\BanorteSeguroService;
+
 
 class CompaniasController extends Controller
 {
@@ -12,16 +17,15 @@ class CompaniasController extends Controller
      */
     public function index()
     {
-        $companias = Compania::all();
-    
-        // Aquí defines las clases disponibles
-        $clases = [
-            'App\Services\QualitasSeguroService' => 'Qualitas Seguro Service',
-            'App\Services\OtroSeguroService' => 'Otro Seguro Service',
-        ];
-    
-        return view('companias.index', compact('companias', 'clases'));
+        $companias = Compania::paginate(10); // Ejemplo con paginación
+        
+        return view('companias.index', [
+            'companias' => $companias,
+            'clases' => config('aseguradoras.servicios') // Accede a la configuración
+        ]);
     }
+
+
     
 
     /**

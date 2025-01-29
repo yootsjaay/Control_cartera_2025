@@ -46,61 +46,66 @@ use Smalot\PdfParser\Parser;
             return view('polizas.create', compact('clientes', 'companias', 'seguros','polizas' ));
         }
 
-        // Método para obtener los seguros relacionados con una compañía
-    public function obtenerSeguros($companiaId)
-    {
-        try {
-            $seguros = Seguro::where('compania_id', $companiaId)->get(['id', 'nombre']);
-            return response()->json($seguros);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al cargar los seguros.'], 500);
-        }
-    }
 
-    // Método para obtener los ramos relacionados con un seguro
-    public function obtenerRamos($seguroId)
-    {
-        try {
-            $ramos = Ramo::where('id_seguros', $seguroId)->get(['id', 'nombre_ramo']);
-            return response()->json($ramos);
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Error al cargar los ramos.'], 500);
-        }
-    }
-    public function store(Request $request)
-    {
-        // Validación
-        $request->validate([
-            'compania_id' => 'required|exists:companias,id',
-            'seguro_id' => 'required|exists:seguros,id',
-            'ramo_id' => 'required|exists:ramos,id',
-            'pdf' => 'required|array',
-            'pdf.*' => 'mimes:pdf|max:2048', // Cada archivo debe ser un PDF de máximo 2 MB
-        ]);
 
-        try {
-            // Procesar los archivos PDF
-            if ($request->has('pdf')) {
-                foreach ($request->file('pdf') as $archivo) {
-                    // Obtener el servicio adecuado según la compañía seleccionada
-                    $seguroService = SeguroFactory::crearSeguroService($request->compania_id);
+   // Método para obtener los seguros relacionados con una compañía
+   public function obtenerSeguros($companiaId)
+   {
+       try {
+           $seguros = Seguro::where('compania_id', $companiaId)->get(['id', 'nombre']);
+           return response()->json($seguros);
+       } catch (\Exception $e) {
+           return response()->json(['error' => 'Error al cargar los seguros.'], 500);
+       }
+   }
 
-                    // Extraer datos del PDF usando el servicio de la compañía
-                    $text = $seguroService->extractToData($archivo);
+   // Método para obtener los ramos relacionados con un seguro
+   public function obtenerRamos($seguroId)
+   {
+       try {
+           $ramos = Ramo::where('id_seguros', $seguroId)->get(['id', 'nombre_ramo']);
+           return response()->json($ramos);
+       } catch (\Exception $e) {
+           return response()->json(['error' => 'Error al cargar los ramos.'], 500);
+       }
+   }
+   public function store(Request $request)
+{
+    // Validación
+    $request->validate([
+        'compania_id' => 'required|exists:companias,id',
+        'seguro_id' => 'required|exists:seguros,id',
+        'ramo_id' => 'required|exists:ramos,id',
+        'pdf' => 'required|array',
+        'pdf.*' => 'mimes:pdf|max:2048', // Cada archivo debe ser un PDF de máximo 2 MB
+    ]);
 
-                    // Aquí puedes procesar el texto como necesites
-                    dd($text);  // Muestra el texto extraído para depuración
-                }
+    try {
+        // Buscar la compañía y obtener su slug
+        $compania = Compania::findOrFail($request->compania_id);
+
+        // Obtener el servicio adecuado según el slug de la compañía
+        $seguroService = SeguroFactory::crearSeguroService($compania->slug);
+
+        // Procesar los archivos PDF
+        if ($request->has('pdf')) {
+            foreach ($request->file('pdf') as $archivo) {
+                // Extraer datos del PDF usando el servicio de la compañía
+                $text = $seguroService->extractToData($archivo);
+
+             
+                dd($text);  // Muestra el texto extraído para depuración
             }
-
-            return redirect()->route('polizas.index')->with('success', 'Póliza cargada exitosamente.');
-        } catch (\Exception $e) {
-            \Log::error('Error al procesar el PDF: ' . $e->getMessage());
-            return redirect()->back()->withErrors([
-                'general' => 'Ocurrió un error al procesar el PDF. Intenta nuevamente.'
-            ]);
         }
+
+        return redirect()->route('polizas.index')->with('success', 'Póliza cargada exitosamente.');
+    } catch (\Exception $e) {
+        \Log::error('Error al procesar el PDF: ' . $e->getMessage());
+        return redirect()->back()->withErrors([
+            'general' => 'Ocurrió un error al procesar el PDF. Intenta nuevamente.'
+        ]);
     }
+}
 
     
 

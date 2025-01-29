@@ -134,10 +134,17 @@
 <script>
     $(document).ready(function() {
         $('#listaCompania').DataTable({
+            responsive: true,
+            order: [[2, 'desc']],
+            columnDefs: [
+                { orderable: false, targets: [4] }, // Deshabilitar orden en columna de acciones
+                { className: "dt-body-center", targets: [0, 1, 2, 3] }
+            ],
             language: {
                 url: 'https://cdn.datatables.net/plug-ins/2.1.8/i18n/es-MX.json',
             },
         });
     });
+</script>
 </script>
 @endsection
