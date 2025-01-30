@@ -60,7 +60,7 @@
 
             <div class="table-responsive">
                 <table id="polizasTable" class="table table-striped table-hover" style="width:100%">
-                    <thead class="bg-lightblue">
+                   <thead class="bg-lightblue">
                         <tr>
                             <th>Póliza</th>
                             <th>Cliente</th>

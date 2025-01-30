@@ -12,13 +12,12 @@ use App\Models\Agente;
 use App\Models\Ramo;
 use Illuminate\Support\Facades\Storage;
 use Spatie\PdfToImage\Pdf;
-use thiagoalessio\TesseractOCR\TesseractOCR;
-use \Imagick; 
 use DateTime;
 use Exception;
 use App\Factories\SeguroFactory;
 use App\Services\SeguroServiceInterface;
 use Smalot\PdfParser\Parser;
+use App\Http\Requests\StorePolizaRequest;
 
 
 
@@ -69,31 +68,18 @@ use Smalot\PdfParser\Parser;
            return response()->json(['error' => 'Error al cargar los ramos.'], 500);
        }
    }
-   public function store(Request $request)
+   public function store(StorePolizaRequest $request)
 {
-    // Validación
-    $request->validate([
-        'compania_id' => 'required|exists:companias,id',
-        'seguro_id' => 'required|exists:seguros,id',
-        'ramo_id' => 'required|exists:ramos,id',
-        'pdf' => 'required|array',
-        'pdf.*' => 'mimes:pdf|max:2048', // Cada archivo debe ser un PDF de máximo 2 MB
-    ]);
-
     try {
-        // Buscar la compañía y obtener su slug
+        // Aquí los datos ya están validados por StorePolizaRequest
         $compania = Compania::findOrFail($request->compania_id);
-
-        // Obtener el servicio adecuado según el slug de la compañía
         $seguroService = SeguroFactory::crearSeguroService($compania->slug);
 
-        // Procesar los archivos PDF
+        // Procesamiento de los archivos PDF
         if ($request->has('pdf')) {
             foreach ($request->file('pdf') as $archivo) {
-                // Extraer datos del PDF usando el servicio de la compañía
+                // Extraer datos del PDF
                 $text = $seguroService->extractToData($archivo);
-
-             
                 dd($text);  // Muestra el texto extraído para depuración
             }
         }
@@ -106,6 +92,9 @@ use Smalot\PdfParser\Parser;
         ]);
     }
 }
+
+   
+   
 
     
 

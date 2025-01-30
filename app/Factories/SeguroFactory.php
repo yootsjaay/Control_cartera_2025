@@ -1,21 +1,17 @@
 <?php
 namespace App\Factories;
 
-use App\Services\HdiSegurosService;
-use App\Services\BanorteSeguroService;
-use App\Services\QualitasSeguroService;
-use App\Services\GmxSeguroService;
 use App\Services\SeguroServiceInterface;
+use Illuminate\Support\Facades\App;
 use Exception;
 
 class SeguroFactory
 {
-    // Definir el mapeo de slug a su clase correspondiente
     private const SERVICIOS = [
-        'hdi_seguros'      => HdiSegurosService::class,
-        'banorte'          => BanorteSeguroService::class,
-        'qualitas_seguros' => QualitasSeguroService::class,
-        'gmx_seguro'       => GmxSeguroService::class,
+        'hdi_seguros'      => \App\Services\HdiSegurosService::class,
+        'banorte'          => \App\Services\BanorteSeguroService::class,
+        'qualitas_seguros' => \App\Services\QualitasSeguroService::class,
+        'gmx_seguro'       => \App\Services\GmxSeguroService::class,
     ];
 
     public static function crearSeguroService(string $slug): SeguroServiceInterface
@@ -24,7 +20,6 @@ class SeguroFactory
             throw new Exception("Compañía con slug '{$slug}' no está soportada.");
         }
 
-        $serviceClass = self::SERVICIOS[$slug];
-        return new $serviceClass();
+        return App::make(self::SERVICIOS[$slug]); // Laravel inyecta dependencias automáticamente
     }
 }

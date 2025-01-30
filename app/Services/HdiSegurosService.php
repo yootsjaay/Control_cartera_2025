@@ -7,30 +7,41 @@ use App\Models\Ramo;
 
 class HdiSegurosService implements SeguroServiceInterface
 {
+    protected $pdfParser;
+
+    // Inyección de la dependencia
+    public function __construct(Parser $pdfParser)
+    {
+        $this->pdfParser = $pdfParser;
+    }
+
+    // Método para extraer datos del PDF
     public function extractToData($pdfFile)
     {
-        $pdfParser = new Parser();
-        $pdf = $pdfParser->parseFile($pdfFile->getPathname());
+        // Parsear el PDF para extraer el texto
+        $pdf = $this->pdfParser->parseFile($pdfFile->getPathname());
 
         // Extraer el texto del PDF
         $text = $pdf->getText();
 
         // 1️⃣ Identificar el seguro desde la base de datos
         $seguro = Seguro::where(function ($query) use ($text) {
+            // Compara el texto con el nombre del seguro
             $query->whereRaw("LOWER(nombre) LIKE ?", ['%' . strtolower($text) . '%']);
         })->first();
 
         // 2️⃣ Identificar el ramo desde la base de datos
         $ramo = Ramo::where(function ($query) use ($text) {
-            $query->whereRaw("LOWER(nombre) LIKE ?", ['%' . strtolower($text) . '%']);
+            // Compara el texto con el nombre del ramo
+            $query->whereRaw("LOWER(nombre_ramo) LIKE ?", ['%' . strtolower($text) . '%']);
         })->first();
 
         // 3️⃣ Si encontramos el seguro y el ramo, procesamos
         if ($seguro && $ramo) {
             return [
-                'seguro' => $seguro->nombre,
-                'ramo' => $ramo->nombre,
-                'detalles' => $this->procesarAutos($text, $seguro, $ramo)
+                'seguros' => $seguro->nombre,
+                'ramos' => $ramo->nombre_ramo,
+                'detalles' => $this->procesarAutos($textn, $seguro, $ramo)  // Método que puedes definir para procesar detalles del seguro
             ];
         }
 
@@ -41,130 +52,87 @@ class HdiSegurosService implements SeguroServiceInterface
     }
 
 
-    private function procesarAutos($text, $seguro, $ramos){
-        $datos= [];
-        // Extraer número de póliza
-        if (preg_match('/Póliza:\s*([0-9\-]+)/', $text, $matches)) {
-            $datos['numero_poliza'] = trim($matches[1]);
-        } elseif (preg_match('/Cotización:\s*(\d+)/i', $text, $matches)) {
-            // Si no hay número de póliza, usar el número de cotización
-            $datos['numero_poliza'] = 'Cotización: ' . trim($matches[1]);
-        } else {
-            $datos['numero_poliza'] = 'No encontrado';
-        }
 
-        // Extraer Cotización
-        if (preg_match('/Cotización:\s*(\d+)/i', $text, $matches)) {
-            $datos['cotizacion'] = $matches[1];
-        } else {
-            $datos['cotizacion'] = 'No encontrado';
-        }
-
-        // Extraer nombre del cliente
-        if (preg_match('/\n([A-Z\s]+)\n\s*RFC:/', $text, $matches)) {
-            $datos['nombre_cliente'] = trim($matches[1]);
-        } else {
-            $datos['nombre_cliente'] = 'No encontrado';
-        }
-    
-        // Extraer RFC
-        if (preg_match('/RFC:\s*([A-Z0-9]+)/', $text, $matches)) {
-            $datos['rfc'] = $matches[1];
-        } else {
-            $datos['rfc'] = 'No encontrado';
-        }
-    
-       
+    private function procesarAutos($text, $seguro, $ramo)
+    {
+        $datos = [];
+        
+        // Método para extraer datos con validación
+        $datos['numero_poliza'] = $this->extraerDato($text, '/Póliza:\s*([0-9\-]+)/', 'Cotización');
+        $datos['cotizacion'] = $this->extraerDato($text, '/Cotización:\s*(\d+)/i', 'No encontrado');
+        $datos['nombre_cliente'] = $this->extraerDato($text, '/\n([A-Z\s]+)\n\s*RFC:/', 'No encontrado');
+        $datos['rfc'] = $this->extraerDato($text, '/RFC:\s*([A-Z0-9]+)/', 'No encontrado');
+        
         // Forma de pago
         $formas_pago = ['SEMESTRAL EFECTIVO', 'TRIMESTRAL EFECTIVO', 'ANUAL EFECTIVO', 'MENSUAL EFECTIVO'];
-        foreach ($formas_pago as $forma) {
-            if (preg_match('/' . preg_quote($forma, '/') . '/i', $text)) {
-                $datos['forma_pago'] = $forma;
-                break;
-            }
-        }
-        if (!isset($datos['forma_pago'])) {
-            $datos['forma_pago'] = 'NO APLICA';
-        }
+        $datos['forma_pago'] = $this->extraerFormaPago($text, $formas_pago);
     
-        // Extraer el total a pagar
-        if (preg_match('/([0-9,]+\.\d{2})\s*Total a Pagar/', $text, $matches)) {
-            $datos['total_a_pagar'] = trim($matches[1]);
-        } else {
-            $datos['total_a_pagar'] = 'No encontrado';
-        }
+        // Total a pagar
+        $datos['total_a_pagar'] = $this->extraerDato($text, '/([0-9,]+\.\d{2})\s*Total a Pagar/', 'No encontrado');
     
-        // Extraer agente (número y nombre)
-        // Extraer Número de Agente y Nombre del Agente
-        if (preg_match('/Agente:\s*(\d+)\s+(.+)/i', $text, $matches)) {
-            $datos['numero_agente'] = trim($matches[1]); // Captura el número del agente
-            $datos['nombre_agente'] = trim($matches[2]); // Captura el nombre del agente
-        }
-
+        // Agente
+        list($datos['numero_agente'], $datos['nombre_agente']) = $this->extraerAgente($text);
     
-        //NUEVAS : 
-         // Extraer el Ramo
-         if (preg_match('/Ramo:\s*(.+)/i', $text, $matches)) {
-            $datos['ramo'] = trim($matches[1]);
-        }
-
-      
-        // Extraer Fecha de Cotización
-        if (preg_match('/Fecha de Cotización:\s*(.+)/i', $text, $matches)) {
-            $datos['fecha_cotizacion'] = trim($matches[1]);
-        }
-
-     /*   // Extraer Agente
-        if (preg_match('/Agente:\s*(.+)/i', $text, $matches)) {
-            $datos['agente'] = trim($matches[1]);
-        }*/
-
-        // Extraer Oficina
-        if (preg_match('/Oficina:\s*(.+)/i', $text, $matches)) {
-            $datos['oficina'] = trim($matches[1]);
-        }
-
-        // Extraer Vigencia (Desde y Hasta)
-        if (preg_match('/Desde las 12:00 hrs\. del\s*(\d{2}\/\d{2}\/\d{4})/i', $text, $matches)) {
-            $datos['vigencia_desde'] = $matches[1];
-        }
-        if (preg_match('/Hasta las 12:00 hrs\. del\s*(\d{2}\/\d{2}\/\d{4})/i', $text, $matches)) {
-            $datos['vigencia_hasta'] = $matches[1];
-        }
-
-        // Extraer Paquete
-        if (preg_match('/Paquete:\s*(.+)/i', $text, $matches)) {
-            $datos['paquete'] = trim($matches[1]);
-        }
-
-        // Extraer Prima Neta
-        if (preg_match('/Prima Neta\s+([\d,]+\.\d{2})/i', $text, $matches)) {
-            $datos['prima_neta'] = str_replace(',', '', $matches[1]);
-        }
-
-        // Extraer Total a Pagar
-        if (preg_match('/Total a Pagar\s+([\d,]+\.\d{2})/i', $text, $matches)) {
-            $datos['total_a_pagar'] = str_replace(',', '', $matches[1]);
-        }
-
-        // Extraer Tipo de Suma
-        if (preg_match('/Tipo Suma:\s*(.+)/i', $text, $matches)) {
-            $datos['tipo_suma'] = trim($matches[1]);
-        }
-
-        // Extraer Serie
-        if (preg_match('/Serie:\s*(.+)/i', $text, $matches)) {
-            $datos['serie'] = trim($matches[1]);
-        }
-
-        // Extraer Descripción del Vehículo
-        if (preg_match('/REGULARIZADO,\s*(.+),/i', $text, $matches)) {
-            $datos['vehiculo'] = trim($matches[1]);
-        }
+        // Nuevos campos
+        $datos['ramo'] = $this->extraerDato($text, '/Ramo:\s*(.+)/i', 'No encontrado');
+        $datos['fecha_cotizacion'] = $this->extraerDato($text, '/Fecha de Cotización:\s*(.+)/i', 'No encontrado');
+        $datos['oficina'] = $this->extraerDato($text, '/Oficina:\s*(.+)/i', 'No encontrado');
+        
+        // Vigencia
+        $datos['vigencia_desde'] = $this->extraerDato($text, '/Desde las 12:00 hrs\. del\s*(\d{2}\/\d{2}\/\d{4})/i', 'No encontrado');
+        $datos['vigencia_hasta'] = $this->extraerDato($text, '/Hasta las 12:00 hrs\. del\s*(\d{2}\/\d{2}\/\d{4})/i', 'No encontrado');
+        
+        // Paquete
+        $datos['paquete'] = $this->extraerDato($text, '/Paquete:\s*(.+)/i', 'No encontrado');
     
-        // Retornar todos los datos extraídos
+        // Prima Neta
+        $datos['prima_neta'] = $this->extraerDato($text, '/Prima Neta\s+([\d,]+\.\d{2})/i', 'No encontrado');
+        
+        // Tipo de Suma
+        $datos['tipo_suma'] = $this->extraerDato($text, '/Tipo Suma:\s*(.+)/i', 'No encontrado');
+    
+        // Serie
+        $datos['serie'] = $this->extraerDato($text, '/Serie:\s*(.+)/i', 'No encontrado');
+    
+        // Vehículo
+        $datos['vehiculo'] = $this->extraerDato($text, '/REGULARIZADO,\s*(.+),/i', 'No encontrado');
+    
         return $datos;
     }
+    
+    // Método para extraer datos con una expresión regular
+    private function extraerDato($text, $pattern, $default)
+    {
+        if (preg_match($pattern, $text, $matches)) {
+            return trim($matches[1]);
+        }
+        return $default;
+    }
+    
+    // Método para extraer la forma de pago
+    private function extraerFormaPago($text, $formas_pago)
+    {
+        foreach ($formas_pago as $forma) {
+            if (preg_match('/' . preg_quote($forma, '/') . '/i', $text)) {
+                return $forma;
+            }
+        }
+        return 'NO APLICA';
+    }
+    
+    // Método para extraer datos del agente
+    private function extraerAgente($text)
+    {
+        if (preg_match('/Agente:\s*(\d+)\s+(.+)/i', $text, $matches)) {
+            return [trim($matches[1]), trim($matches[2])];
+        }
+        return ['No encontrado', 'No encontrado'];
+    }
+    
+
+
+
+
     private function extraerDatosHdiGastos($text) {
                 $datos = [];
             
