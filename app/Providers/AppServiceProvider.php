@@ -3,46 +3,44 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use App\Services\SeguroServiceInterface;
-use App\Services\HdiSegurosService;
-use App\Services\BanorteSeguroService;
-use App\Services\QualitasSeguroService;
-use App\Services\GmxSeguroService;
 use Smalot\PdfParser\Parser;
-
+use App\Services\{
+    SeguroServiceInterface,
+    HdiSegurosService,
+    BanorteSeguroService,
+    QualitasSeguroService,
+    GmxSeguroService
+};
 
 class AppServiceProvider extends ServiceProvider
 {
     /**
-     * Register any application services.
+     * Registrar servicios de seguros.
      */
     public function register(): void
     {
-       /*if(config('app.env') == 'local'){
-            $this->app['request']->server->set('HTTPS', 'true');
-        }*/
-        $this->app->singleton('seguro.hdi', function () {
-            return new HdiSegurosService(app(Parser::class)); // Inyectando dependencias necesarias
-        });
+    
+            $this->app->bind(SeguroServiceInterface::class, function ($app) {
+                $request = $app->make(Request::class);
+                return $app->make(SeguroServiceFactory::class)
+                           ->createFromRequest($request);
+            });
+    
+        $seguros = [
+            'hdi_seguros'      => HdiSegurosService::class,
+            'banorte'          => BanorteSeguroService::class,
+            'qualitas_seguros' => QualitasSeguroService::class,
+            'gmx_seguro'       => GmxSeguroService::class,
+        ];
 
-        $this->app->singleton('seguro.banorte', function () {
-            return new BanorteSeguroService(app(Parser::class));
-        });
-
-        $this->app->singleton('seguro.qualitas', function () {
-            return new QualitasSeguroService(app(Parser::class));
-        });
-
-        $this->app->singleton('seguro.gmx', function () {
-            return new GmxSeguroService(app(Parser::class));
-        });
+        foreach ($seguros as $key => $service) {
+            // Registramos los servicios como singletons, inyectando Parser donde sea necesario
+            $this->app->singleton($key, function () use ($service) {
+                // Dependiendo del servicio, le pasamos el Parser para manejar los PDFs
+                return new $service(app(Parser::class));
+            });
+        }
     }
-
-    /**
-     * Realizar cualquier trabajo de inicialización necesario.
-     *
-     * @return void
-     */
 
     /**
      * Bootstrap any application services.
@@ -52,3 +50,4 @@ class AppServiceProvider extends ServiceProvider
         //
     }
 }
+

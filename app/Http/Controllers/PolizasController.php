@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Cliente;
 use App\Models\Compania;
@@ -12,24 +11,22 @@ use App\Models\Agente;
 use App\Models\Ramo;
 use Illuminate\Support\Facades\Storage;
 use Spatie\PdfToImage\Pdf;
-use DateTime;
 use Exception;
 use App\Factories\SeguroFactory;
 use App\Services\SeguroServiceInterface;
 use Smalot\PdfParser\Parser;
 use App\Http\Requests\StorePolizaRequest;
 
-
-
-    class PolizasController extends Controller
+class PolizasController extends Controller
     {
         
         public function index()
         {
-            $polizas = Poliza::all();
-            $companias= Compania::all();
-            $seguros = Seguro::all();
-            return view('polizas.index', compact('polizas', 'companias', 'seguros'));
+            return view('polizas.index', [
+                'polizas' => Poliza::all(),
+                'companias' => Compania::all(),
+                'seguros' => Seguro::all(),
+            ]);
         }
 
         /**
@@ -37,10 +34,13 @@ use App\Http\Requests\StorePolizaRequest;
          */
         public function create()
         {
-            $clientes = Cliente::all();
-            $companias = Compania::all();
-            $seguros = Seguro::all();
-            $polizas = Poliza::all();  
+            return view('polizas.create', [
+                'clientes' => Cliente::all(),
+                'companias' => Compania::all(),
+                'seguros' => Seguro::all(),
+                'polizas' => Poliza::all(),
+            ]);
+        
             
             return view('polizas.create', compact('clientes', 'companias', 'seguros','polizas' ));
         }
@@ -51,47 +51,53 @@ use App\Http\Requests\StorePolizaRequest;
    public function obtenerSeguros($companiaId)
    {
        try {
-           $seguros = Seguro::where('compania_id', $companiaId)->get(['id', 'nombre']);
+           $seguros = Seguro::where('compania_id', $companiaId)
+           ->get(['id', 'nombre']);
            return response()->json($seguros);
        } catch (\Exception $e) {
            return response()->json(['error' => 'Error al cargar los seguros.'], 500);
        }
    }
+      // Método para obtener los ramos relacionados con un seguro
+      public function obtenerRamos($seguroId)
+      {
+          try {
+              $ramos = Ramo::where('id_seguros', $seguroId)
+              ->get(['id', 'nombre_ramo']);
+              return response()->json($ramos);
+          } catch (\Exception $e) {
+              return response()->json(['error' => 'Error al cargar los ramos.'], 500);
+          }
+      }
 
    // Método para obtener los ramos relacionados con un seguro
-   public function obtenerRamos($seguroId)
+   public function store(StorePolizaRequest $request)
    {
        try {
-           $ramos = Ramo::where('id_seguros', $seguroId)->get(['id', 'nombre_ramo']);
-           return response()->json($ramos);
-       } catch (\Exception $e) {
-           return response()->json(['error' => 'Error al cargar los ramos.'], 500);
+           $compania = Compania::findOrFail($request->compania_id);
+           $seguroService = SeguroFactory::crearSeguroService($compania->slug);
+
+           // Procesar cada archivo PDF subido
+           if ($request->has('pdf')) {
+               foreach ($request->file('pdf') as $archivo) {
+                   // Extraer datos específicos según la compañía
+                   $text = $seguroService->extractToData($archivo);
+                   \Log::info("Texto extraído del PDF:", ['data' => $text]);
+
+                   // Aquí podrías guardar la información extraída en la BD si es necesario
+               }
+           }
+
+           return redirect()->route('polizas.index')->with('success', 'Póliza cargada exitosamente.');
+       } catch (Exception $e) {
+           \Log::error('Error al procesar el PDF: ' . $e->getMessage());
+
+           return redirect()->back()->withErrors([
+               'general' => 'Ocurrió un error al procesar el PDF. Intenta nuevamente.'
+           ]);
        }
    }
-   public function store(StorePolizaRequest $request)
-{
-    try {
-        // Aquí los datos ya están validados por StorePolizaRequest
-        $compania = Compania::findOrFail($request->compania_id);
-        $seguroService = SeguroFactory::crearSeguroService($compania->slug);
-
-        // Procesamiento de los archivos PDF
-        if ($request->has('pdf')) {
-            foreach ($request->file('pdf') as $archivo) {
-                // Extraer datos del PDF
-                $text = $seguroService->extractToData($archivo);
-                dd($text);  // Muestra el texto extraído para depuración
-            }
-        }
-
-        return redirect()->route('polizas.index')->with('success', 'Póliza cargada exitosamente.');
-    } catch (\Exception $e) {
-        \Log::error('Error al procesar el PDF: ' . $e->getMessage());
-        return redirect()->back()->withErrors([
-            'general' => 'Ocurrió un error al procesar el PDF. Intenta nuevamente.'
-        ]);
-    }
-}
+   
 
    
    

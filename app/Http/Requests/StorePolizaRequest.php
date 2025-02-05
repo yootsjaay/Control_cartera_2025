@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 class StorePolizaRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * Determina si el usuario está autorizado para hacer esta solicitud.
      */
     public function authorize(): bool
     {
@@ -17,7 +17,7 @@ class StorePolizaRequest extends FormRequest
     }
 
     /**
-     * Define las reglas de validación para el formulario
+     * Reglas de validación para el formulario.
      */
     public function rules(): array
     {
@@ -31,35 +31,39 @@ class StorePolizaRequest extends FormRequest
     }
 
     /**
-     * Validación personalizada
+     * Validación personalizada.
      */
     public function withValidator(Validator $validator)
     {
         $validator->after(function ($validator) {
-            // Recuperamos los valores enviados en la solicitud
             $companiaId = $this->compania_id;
             $seguroId = $this->seguro_id;
             $ramoId = $this->ramo_id;
 
-            // Verificamos si el seguro pertenece a la compañía seleccionada
-            $relacionExist = DB::table('seguros')
-                ->where('id', $seguroId)
-                ->where('compania_id', $companiaId)
-                ->exists();
-
-            if (!$relacionExist) {
-                $validator->errors()->add('seguro_id', 'El seguro no pertenece a la compañía seleccionada.');
+            // Validamos que los IDs sean válidos antes de hacer relaciones
+            if (!$this->verificarExistencia('seguros', $seguroId) || !$this->verificarExistencia('ramos', $ramoId)) {
+                return;
             }
 
-            // Verificamos si el ramo pertenece al seguro seleccionado
-            $ramoExiste = DB::table('ramos')
-                ->where('id', $ramoId)
-                ->where('id_seguros', $seguroId)
-                ->exists();
+            // 🔹 Hacemos una sola consulta para validar relaciones
+            $relaciones = DB::table('seguros')
+                ->leftJoin('ramos', 'seguros.id', '=', 'ramos.id_seguros')
+                ->where('seguros.id', $seguroId)
+                ->where('seguros.compania_id', $companiaId)
+                ->where('ramos.id', $ramoId)
+                ->first();
 
-            if (!$ramoExiste) {
-                $validator->errors()->add('ramo_id', 'El ramo no pertenece al seguro seleccionado.');
+            if (!$relaciones) {
+                $validator->errors()->add('seguro_id', 'El seguro no pertenece a la compañía seleccionada o el ramo no corresponde.');
             }
         });
+    }
+
+    /**
+     * Método auxiliar para verificar si un ID existe en una tabla.
+     */
+    private function verificarExistencia(string $tabla, int $id): bool
+    {
+        return DB::table($tabla)->where('id', $id)->exists();
     }
 }

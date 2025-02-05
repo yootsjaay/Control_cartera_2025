@@ -2,15 +2,10 @@
 
 return [
     'servicios' => [
-        App\Services\QualitasSeguroService::class => 'Qualitas Seguro',
-        App\Services\HdiSegurosService::class => 'HDI Seguro',
-        App\Services\BanorteSeguroService::class => 'Banorte Seguro',
-        App\Services\GmxSeguroService::class => 'GMX Seguro'
+        // Servicios de aseguradoras
+        'qualitas_seguros' => App\Services\QualitasSeguroService::class,  // Servicio para Qualitas Seguros
+        'hdi_seguros'      => App\Services\HdiSegurosService::class,       // Servicio para HDI Seguros
+        'banorte'          => App\Services\BanorteSeguroService::class,   // Servicio para Banorte Seguros
+        'gmx_seguro'       => App\Services\GmxSeguroService::class,       // Servicio para GMX Seguros
     ],
-    
-    // Puedes agregar más configuraciones relacionadas aquí
-    'opciones' => [
-        'max_aseguradoras' => 10,
-        'formato_fecha' => 'Y-m-d'
-    ]
 ];

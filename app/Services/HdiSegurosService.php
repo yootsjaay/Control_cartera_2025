@@ -7,50 +7,35 @@ use App\Models\Ramo;
 
 class HdiSegurosService implements SeguroServiceInterface
 {
-    protected $pdfParser;
-
-    // Inyección de la dependencia
-    public function __construct(Parser $pdfParser)
+    public function getSeguros()
     {
-        $this->pdfParser = $pdfParser;
+        // Obtiene todos los seguros de la base de datos que pertenecen a Banorte
+        return Seguro::where('compania_id', 1) 
+                    ->get(['id', 'nombre']);
     }
 
+    /**
+     * Obtiene los ramos disponibles para un seguro específico de Banorte.
+     */
+    public function getRamos($seguroId)
+    {
+        // Obtienes los ramos relacionados con el seguro seleccionado
+        return Ramo::where('id_seguros', $seguroId)
+            ->get(['id', 'nombre_ramo']);
+    }
+  
     // Método para extraer datos del PDF
     public function extractToData($pdfFile)
     {
-        // Parsear el PDF para extraer el texto
-        $pdf = $this->pdfParser->parseFile($pdfFile->getPathname());
+        $pdfParser = new Parser();
+        $pdf = $pdfParser->parseFile($pdfFile->getPathname());
 
         // Extraer el texto del PDF
-        $text = $pdf->getText();
+        $texto = $pdf->getText();
 
-        // 1️⃣ Identificar el seguro desde la base de datos
-        $seguro = Seguro::where(function ($query) use ($text) {
-            // Compara el texto con el nombre del seguro
-            $query->whereRaw("LOWER(nombre) LIKE ?", ['%' . strtolower($text) . '%']);
-        })->first();
-
-        // 2️⃣ Identificar el ramo desde la base de datos
-        $ramo = Ramo::where(function ($query) use ($text) {
-            // Compara el texto con el nombre del ramo
-            $query->whereRaw("LOWER(nombre_ramo) LIKE ?", ['%' . strtolower($text) . '%']);
-        })->first();
-
-        // 3️⃣ Si encontramos el seguro y el ramo, procesamos
-        if ($seguro && $ramo) {
-            return [
-                'seguros' => $seguro->nombre,
-                'ramos' => $ramo->nombre_ramo,
-                'detalles' => $this->procesarAutos($textn, $seguro, $ramo)  // Método que puedes definir para procesar detalles del seguro
-            ];
-        }
-
-        // 4️⃣ Manejo de errores si no se encuentra
-        return [
-            'error' => 'No se pudo identificar el seguro o ramo en el documento.'
-        ];
+        // Aquí puedes hacer el procesamiento necesario del texto extraído
+        return $texto;  // O alguna lógica adicional según la compañía
     }
-
 
 
     private function procesarAutos($text, $seguro, $ramo)
