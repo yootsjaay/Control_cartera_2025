@@ -3,9 +3,11 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Http\Request;
 use Smalot\PdfParser\Parser;
 use App\Services\{
     SeguroServiceInterface,
+    SeguroServiceFactory,
     HdiSegurosService,
     BanorteSeguroService,
     QualitasSeguroService,
@@ -19,35 +21,36 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-    
-            $this->app->bind(SeguroServiceInterface::class, function ($app) {
-                $request = $app->make(Request::class);
-                return $app->make(SeguroServiceFactory::class)
-                           ->createFromRequest($request);
-            });
-    
-        $seguros = [
-            'hdi_seguros'      => HdiSegurosService::class,
-            'banorte'          => BanorteSeguroService::class,
-            'qualitas_seguros' => QualitasSeguroService::class,
-            'gmx_seguro'       => GmxSeguroService::class,
-        ];
+        // Verificamos si el Factory está bien construido antes de inyectar servicios
+        $this->app->bind(SeguroServiceInterface::class, function ($app) {
+            $request = $app->make(Request::class); // Aseguramos que Request está disponible
+            return $app->make(SeguroServiceFactory::class)
+                       ->createFromRequest($request);
+        });
 
-        foreach ($seguros as $key => $service) {
-            // Registramos los servicios como singletons, inyectando Parser donde sea necesario
-            $this->app->singleton($key, function () use ($service) {
-                // Dependiendo del servicio, le pasamos el Parser para manejar los PDFs
-                return new $service(app(Parser::class));
-            });
-        }
+        // Definimos los servicios disponibles con la inyección de dependencias
+        $this->app->singleton(HdiSegurosService::class, function ($app) {
+            return new HdiSegurosService($app->make(Parser::class));
+        });
+
+        $this->app->singleton(BanorteSeguroService::class, function ($app) {
+            return new BanorteSeguroService($app->make(Parser::class));
+        });
+
+        $this->app->singleton(QualitasSeguroService::class, function ($app) {
+            return new QualitasSeguroService($app->make(Parser::class));
+        });
+
+        $this->app->singleton(GmxSeguroService::class, function ($app) {
+            return new GmxSeguroService($app->make(Parser::class));
+        });
     }
 
     /**
-     * Bootstrap any application services.
+     * Bootstrap cualquier servicio necesario.
      */
     public function boot(): void
     {
         //
     }
 }
-
