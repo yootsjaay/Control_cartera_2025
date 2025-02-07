@@ -28,8 +28,9 @@ class BanorteSeguroService implements SeguroServiceInterface
      */
     public function getSeguros()
     {
-        return Seguro::where('compania_id', 2)  // Asumiendo que Banorte tiene ID 1
-            ->get(['id', 'nombre']);
+        $compania = Compania::where('slug', $slug)->firstOrFail();
+
+    return Seguro::where('compania_id', $compania->id)->get(['id', 'nombre']);
     }
 
     /**
