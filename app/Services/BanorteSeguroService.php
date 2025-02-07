@@ -28,7 +28,7 @@ class BanorteSeguroService implements SeguroServiceInterface
      */
     public function getSeguros()
     {
-        return Seguro::where('compania_id', 1)  // Asumiendo que Banorte tiene ID 1
+        return Seguro::where('compania_id', 2)  // Asumiendo que Banorte tiene ID 1
             ->get(['id', 'nombre']);
     }
 
@@ -64,7 +64,8 @@ class BanorteSeguroService implements SeguroServiceInterface
         \Log::info("Texto extraído del PDF:", ['data' => substr($text, 0, 500)]);
 
         // **Llamamos al método específico según el ramo**
-        return $this->procesarTexto($text, $ramo);
+     return $this->procesarTexto($text, $ramo);
+        //dd($text);
 
     } catch (Exception $e) {
         \Log::error("Error al procesar el PDF: " . $e->getMessage());
@@ -77,9 +78,9 @@ class BanorteSeguroService implements SeguroServiceInterface
     private function procesarTexto(string $text, Ramo $ramo): array
     {
         switch (strtolower($ramo->slug)) {
-            case 'gastos-medicos':
+            case 'gastos-medicos-mayores':
                 return $this->procesarGastosMedicos($text);
-            case 'autos':
+            case 'automoviles-residentes':
                 return $this->procesarAutos($text);
             case 'danios':
                 return $this->procesarDanios($text);
@@ -131,6 +132,66 @@ private function procesarGastosMedicos(string $text): array
 
     return $datosExtraidos;
 }
+private function procesarAutos(string $text): array
+{
+    $datos = [
+        'numero_poliza'   => null,
+        'vigencia_inicio' => null,
+        'vigencia_fin'    => null,
+        'forma_pago'      => null,
+        'total_a_pagar'   => null,
+        'archivo_pdf'     => null, // Este se llenará con el nombre del archivo en otro punto del proceso
+        'status'          => 'ACTIVO', // Asumo que si se está procesando es porque está activo
+        'cliente_id'      => null,
+        'compania_id'     => null,
+        'seguro_id'       => null,
+    ];
+
+    // Número de póliza
+    if (preg_match('/NO\.\s*DE\s*PÓLIZA[\s:]+(\d+)/i', $text, $match)) {
+        $datosExtraidos['numero_poliza'] = $match[1];
+    }
+
+
+    // Vigencia inicio
+    if (preg_match('/Vigencia\s*Inicio:\s*([\d\/-]+)/i', $text, $match)) {
+        $datos['vigencia_inicio'] = $match[1] ?? null;
+    }
+
+    // Vigencia fin
+    if (preg_match('/Vigencia\s*Fin:\s*([\d\/-]+)/i', $text, $match)) {
+        $datos['vigencia_fin'] = $match[1] ?? null;
+    }
+
+    // Forma de pago
+    if (preg_match('/Forma de Pago:\s*([^\n]+)/i', $text, $match)) {
+        $datos['forma_pago'] = trim($match[1]) ?? null;
+    }
+
+    // Total a pagar
+    if (preg_match('/Total a Pagar:\s*\$?([\d,]+\.\d{2})/i', $text, $match)) {
+        $datos['total_a_pagar'] = (float) str_replace(',', '', $match[1]) ?? null;
+    }
+
+    // Cliente ID (Podría requerir una búsqueda en la BD según el nombre del contratante)
+    if (preg_match('/Nombre del Contratante:\s*([^\n]+)/', $text, $match)) {
+        $datos['cliente_id'] = trim($match[1])?? null;
+    }
+
+    // Compañía de seguros (Podría requerir búsqueda en la BD)
+    if (preg_match('/Compañía de Seguros:\s*([^\n]+)/', $text, $match)) {
+        $datos['compania_id'] = trim($match[1])?? null;
+    }
+
+    // Tipo de seguro (Podría requerir búsqueda en la BD)
+    if (preg_match('/Tipo de Seguro:\s*([^\n]+)/', $text, $match)) {
+        $datos['seguro_id'] = trim($match[1]) ?? null;
+    }
+
+    return $datos;
+}
+
+
 
     
 }

@@ -98,7 +98,8 @@ class PolizasController extends Controller
                 // Pasamos los valores validados sin miedo a que sean incorrectos
                 $text = $seguroService->extractToData($archivo, $seguro, $ramo);
                 dd($text);
-                // Aquí podrías guardar la información extraída en la BD si es necesario
+
+                
             }
         }
 

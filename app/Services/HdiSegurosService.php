@@ -1,124 +1,98 @@
 <?php
 namespace App\Services;
 
+use Illuminate\Http\UploadedFile;
 use Smalot\PdfParser\Parser;
 use App\Models\Seguro;
 use App\Models\Ramo;
+use InvalidArgumentException;
+use Carbon\Carbon;
+use Exception;
 
 class HdiSegurosService implements SeguroServiceInterface
 {
     public function getSeguros()
     {
-        // Obtiene todos los seguros de la base de datos que pertenecen a Banorte
-        return Seguro::where('compania_id', 1) 
-                    ->get(['id', 'nombre']);
+        return Seguro::where('compania_id', 1)  
+            ->get(['id', 'nombre']);
     }
 
     /**
-     * Obtiene los ramos disponibles para un seguro específico de Banorte.
+     * Obtiene los ramos disponibles para un seguro específico de HDI.
      */
     public function getRamos($seguroId)
     {
-        // Obtienes los ramos relacionados con el seguro seleccionado
         return Ramo::where('id_seguros', $seguroId)
             ->get(['id', 'nombre_ramo']);
     }
   
     // Método para extraer datos del PDF
-    public function extractToData($pdfFile)
+    public function extractToData(UploadedFile $archivo, Seguro $seguro, Ramo $ramo): array
     {
-        $pdfParser = new Parser();
-        $pdf = $pdfParser->parseFile($pdfFile->getPathname());
-
-        // Extraer el texto del PDF
-        $texto = $pdf->getText();
-
-        // Aquí puedes hacer el procesamiento necesario del texto extraído
-        return $texto;  // O alguna lógica adicional según la compañía
-    }
-
-
-    private function procesarAutos($text, $seguro, $ramo)
-    {
-        $datos = [];
-        
-        // Método para extraer datos con validación
-        $datos['numero_poliza'] = $this->extraerDato($text, '/Póliza:\s*([0-9\-]+)/', 'Cotización');
-        $datos['cotizacion'] = $this->extraerDato($text, '/Cotización:\s*(\d+)/i', 'No encontrado');
-        $datos['nombre_cliente'] = $this->extraerDato($text, '/\n([A-Z\s]+)\n\s*RFC:/', 'No encontrado');
-        $datos['rfc'] = $this->extraerDato($text, '/RFC:\s*([A-Z0-9]+)/', 'No encontrado');
-        
-        // Forma de pago
-        $formas_pago = ['SEMESTRAL EFECTIVO', 'TRIMESTRAL EFECTIVO', 'ANUAL EFECTIVO', 'MENSUAL EFECTIVO'];
-        $datos['forma_pago'] = $this->extraerFormaPago($text, $formas_pago);
-    
-        // Total a pagar
-        $datos['total_a_pagar'] = $this->extraerDato($text, '/([0-9,]+\.\d{2})\s*Total a Pagar/', 'No encontrado');
-    
-        // Agente
-        list($datos['numero_agente'], $datos['nombre_agente']) = $this->extraerAgente($text);
-    
-        // Nuevos campos
-        $datos['ramo'] = $this->extraerDato($text, '/Ramo:\s*(.+)/i', 'No encontrado');
-        $datos['fecha_cotizacion'] = $this->extraerDato($text, '/Fecha de Cotización:\s*(.+)/i', 'No encontrado');
-        $datos['oficina'] = $this->extraerDato($text, '/Oficina:\s*(.+)/i', 'No encontrado');
-        
-        // Vigencia
-        $datos['vigencia_desde'] = $this->extraerDato($text, '/Desde las 12:00 hrs\. del\s*(\d{2}\/\d{2}\/\d{4})/i', 'No encontrado');
-        $datos['vigencia_hasta'] = $this->extraerDato($text, '/Hasta las 12:00 hrs\. del\s*(\d{2}\/\d{2}\/\d{4})/i', 'No encontrado');
-        
-        // Paquete
-        $datos['paquete'] = $this->extraerDato($text, '/Paquete:\s*(.+)/i', 'No encontrado');
-    
-        // Prima Neta
-        $datos['prima_neta'] = $this->extraerDato($text, '/Prima Neta\s+([\d,]+\.\d{2})/i', 'No encontrado');
-        
-        // Tipo de Suma
-        $datos['tipo_suma'] = $this->extraerDato($text, '/Tipo Suma:\s*(.+)/i', 'No encontrado');
-    
-        // Serie
-        $datos['serie'] = $this->extraerDato($text, '/Serie:\s*(.+)/i', 'No encontrado');
-    
-        // Vehículo
-        $datos['vehiculo'] = $this->extraerDato($text, '/REGULARIZADO,\s*(.+),/i', 'No encontrado');
-    
-        return $datos;
-    }
-    
-    // Método para extraer datos con una expresión regular
-    private function extraerDato($text, $pattern, $default)
-    {
-        if (preg_match($pattern, $text, $matches)) {
-            return trim($matches[1]);
+        if ($seguro->compania->slug !== 'hdi_seguros') {
+            throw new InvalidArgumentException("El seguro seleccionado no pertenece a HDI.");
         }
-        return $default;
-    }
-    
-    // Método para extraer la forma de pago
-    private function extraerFormaPago($text, $formas_pago)
-    {
-        foreach ($formas_pago as $forma) {
-            if (preg_match('/' . preg_quote($forma, '/') . '/i', $text)) {
-                return $forma;
+
+        if ($ramo->id_seguros != $seguro->id) {
+            throw new InvalidArgumentException("El ramo seleccionado no corresponde al seguro proporcionado.");
+        }
+
+        try {
+            // Procesar el PDF
+            $pdfParser = new Parser();
+            $pdf = $pdfParser->parseFile($archivo->getPathname());
+
+            // Validar si el PDF tiene contenido
+            $text = trim($pdf->getText());
+            if (empty($text)) {
+                throw new InvalidArgumentException("El PDF no contiene texto legible.");
             }
+
+            \Log::info("Texto extraído del PDF:", ['data' => substr($text, 0, 500)]);
+
+            // Llamamos al método específico según el ramo
+            return $this->procesarTexto($text, $ramo);
+
+        } catch (Exception $e) {
+            \Log::error("Error al procesar el PDF: " . $e->getMessage());
+            throw new InvalidArgumentException("No se pudo procesar el archivo PDF.");
         }
-        return 'NO APLICA';
     }
-    
-    // Método para extraer datos del agente
-    private function extraerAgente($text)
+
+    private function procesarTexto(string $text, Ramo $ramo): array
     {
-        if (preg_match('/Agente:\s*(\d+)\s+(.+)/i', $text, $matches)) {
-            return [trim($matches[1]), trim($matches[2])];
+        // Normalizamos el slug a minúsculas y lo comparamos con valores estandarizados
+        $slug = strtolower($ramo->slug);
+
+        switch ($slug) {
+            case 'medica-total-plus':
+                return $this->procesarGastosMedicosTotal($text);
+            case 'vehiculos-residentes-hdi-autos-y-pick-ups': // Usar un slug estandarizado en BD
+                return $this->procesarAutos($text);
+            case 'danios':
+                return $this->procesarDanios($text);
+            default:
+                throw new InvalidArgumentException("El ramo {$ramo->slug} no tiene un procesador definido.");
         }
-        return ['No encontrado', 'No encontrado'];
     }
-    
+
+    private function procesarAutos(string $text): array
+    {
+        \Log::info('Procesando autos HDI...');
+        
+        return [
+            'mensaje' => 'Procesando autos HDI',
+            'datos' => []
+        ];
+    }
 
 
 
 
-    private function extraerDatosHdiGastos($text) {
+
+
+    private function procesarGastosMedicosTotal(String $text): array
+     {
                 $datos = [];
             
                 // Extrae Numero de poliza
@@ -159,7 +133,7 @@ class HdiSegurosService implements SeguroServiceInterface
         }
 
             
-                dd($datos);
+                
                 return $datos;
             }
 }

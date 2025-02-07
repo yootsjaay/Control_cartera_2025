@@ -32,11 +32,19 @@ class Ramo extends Model
 
 	protected $fillable = [
 		'nombre_ramo',
-		'id_seguros'
+		'id_seguros',
+		'slug'
 	];
 
 	public function seguro()
 	{
 		return $this->belongsTo(Seguro::class, 'id_seguros');
 	}
+	protected static function boot()
+    {
+        parent::boot();
+        static::saving(function ($ramo) {
+            $ramo->slug = Str::slug($ramo->nombre_ramo, '-'); // Genera el slug basado en nombre_ramo
+        });
+    }
 }
