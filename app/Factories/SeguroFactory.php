@@ -20,23 +20,25 @@ class SeguroFactory
      * @throws InvalidArgumentException Si el slug no está configurado o el servicio no implementa la interfaz.
      */
     public static function crearSeguroService(string $slug): SeguroServiceInterface
-    {
-        // Obtener la configuración desde config/aseguradoras.php
-        $servicios = Config::get('aseguradoras.servicios', []);
+{
+    $servicios = Config::get('aseguradoras.servicios', []);
 
-        if (!isset($servicios[$slug])) {
-            throw new InvalidArgumentException(
-                "Compañía con slug '{$slug}' no está soportada. Aseguradoras disponibles: " . implode(', ', array_keys($servicios))
-            );
-        }
-
-        $serviceClass = $servicios[$slug];
-        $service = resolve($serviceClass);
-
-        if (!$service instanceof SeguroServiceInterface) {
-            throw new InvalidArgumentException("El servicio '{$serviceClass}' no implementa SeguroServiceInterface.");
-        }
-
-        return $service;
+    if (!isset($servicios[$slug])) {
+        throw new InvalidArgumentException(
+            "Compañía con slug '{$slug}' no está soportada. Aseguradoras disponibles: " . implode(', ', array_keys($servicios))
+        );
     }
+
+    $serviceClass = $servicios[$slug];
+    $service = resolve($serviceClass);
+
+    if (!$service instanceof SeguroServiceInterface) {
+        throw new InvalidArgumentException("El servicio '{$serviceClass}' no implementa SeguroServiceInterface.");
+    }
+
+   
+
+    return $service;
+}
+
 }

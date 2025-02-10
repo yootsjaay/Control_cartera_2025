@@ -78,14 +78,84 @@ class HdiSegurosService implements SeguroServiceInterface
     }
 
     private function procesarAutos(string $text): array
-    {
-        \Log::info('Procesando autos HDI...');
-        
-        return [
-            'mensaje' => 'Procesando autos HDI',
-            'datos' => []
+{
+    $datos = [];
+
+    // Extraer número de póliza (cotización)
+    if (preg_match('/(Cotización|Póliza):\s*([0-9\-]+)/', $text, $matches)) {
+        $datos['numero_poliza'] = trim($matches[2]);
+    } else {
+        $datos['numero_poliza'] = 'No encontrado';
+    }
+
+    // Extraer vigencia inicio
+    if (preg_match('/Desde las 12:00 hrs\. del\s*(\d{2}\/\d{2}\/\d{4})/', $text, $matches)) {
+        $datos['vigencia_inicio'] = $matches[1];
+    } else {
+        $datos['vigencia_inicio'] = 'No encontrado';
+    }
+
+    // Extraer vigencia fin
+    if (preg_match('/Hasta las 12:00 hrs\. del\s*(\d{2}\/\d{2}\/\d{4})/', $text, $matches)) {
+        $datos['vigencia_fin'] = $matches[1];
+    } else {
+        $datos['vigencia_fin'] = 'No encontrado';
+    }
+
+    // Extraer nombre del cliente (entre "Nombre:" y "Teléfono:")
+    if (preg_match('/\n([A-Z\s]+)\n\s*RFC:/', $text, $matches)) {
+        $datos['nombre_cliente'] = trim($matches[1]);
+    } else {
+        $datos['nombre_cliente'] = 'No encontrado';
+    }
+
+    // Extraer RFC
+    if (preg_match('/RFC:\s*([A-Z0-9]+)/', $text, $matches)) {
+        $datos['rfc'] = $matches[1];
+    } else {
+        $datos['rfc'] = 'No encontrado';
+    }
+
+    // Extraer forma de pago
+    if (preg_match('/Detalle de Cuotas por Pagar.*?(\d[\d,]*\.\d{2})/', $text, $matches)) {
+        $datos['forma_pago'] = "Una exhibición de " . trim($matches[1]);
+    } else {
+        $datos['forma_pago'] = 'NO APLICA';
+    }
+
+    // Extraer total a pagar (ahora busca también después de "Total a Pagar")
+    if (preg_match('/Total a Pagar\s*\n*([\d,]+\.\d{2})/', $text, $matches)) {
+        $datos['total_pagar'] = str_replace(',', '', $matches[1]);
+    } else {
+        $datos['total_pagar'] = 'No encontrado';
+    }
+
+    // Extraer agente (número y nombre)
+    if (preg_match('/Agente:\s*([0-9]+)\s*([A-Z\s]+)/', $text, $matches)) {
+        $datos['numero_agente'] = trim($matches[1]);
+        $datos['nombre_agente'] = trim($matches[2]);
+    } else {
+        $datos['numero_agente'] = 'No encontrado';
+        $datos['nombre_agente'] = 'No encontrado';
+    }
+
+    // Extraer recibos (ajustando el patrón)
+    $pattern = '/(\d{2}-\w{3}-\d{4})\s*al\s*(\d{2}-\w{3}-\d{4})\s*([\d,]+\.\d{2})/';
+    preg_match_all($pattern, $text, $matches, PREG_SET_ORDER);
+    
+    $recibos = [];
+    foreach ($matches as $match) {
+        $recibos[] = [
+            'fecha_pago' => $this->convertirFecha($match[1]),
+            'vigencia_inicio' => $this->convertirFecha($match[2]),
+            'importe' => floatval(str_replace(',', '', $match[3])),
         ];
     }
+    
+    $datos['recibos'] = $recibos;
+
+    return $datos;
+}
 
 
 
