@@ -66,7 +66,7 @@ class BanorteSeguroService implements SeguroServiceInterface
 
         // **Llamamos al método específico según el ramo**
    return $this->procesarTexto($text, $ramo);
-   //   dd($text);
+     // dd($text);
 
     } catch (Exception $e) {
         \Log::error("Error al procesar el PDF: " . $e->getMessage());
@@ -135,63 +135,40 @@ private function procesarGastosMedicos(string $text): array
 }
 private function procesarAutos(string $text): array
 {
-    $datos = [];
 
-    // Extraer número de póliza
-    preg_match('/No\. de Póliza[^\n]+\s+(\d+)/', $text, $matches);
-    $datos['numero_poliza'] = $matches[1] ?? null;
-
-    // Extraer nombre del contratante
-    preg_match('/Nombre del Contratante:([^\n\t]+)/', $text, $matches);
-    $datos['nombre_contratante'] = trim($matches[1] ?? '');
-
-    // Extraer RFC del contratante
-    preg_match('/R\.F\.C\.:([^\n\t]+)/', $text, $matches);
-    $datos['rfc_contratante'] = trim($matches[1] ?? '');
-
-    // Extraer dirección del asegurado
-    preg_match('/Calle y No\.:([^\n\t]+)/', $text, $matches);
-    $datos['calle_numero'] = trim($matches[1] ?? '');
-
-    // Extraer colonia
-    preg_match('/Colonia:([^\n\t]+)/', $text, $matches);
-    $datos['colonia'] = trim($matches[1] ?? '');
-
-    // Extraer código postal
-    preg_match('/C\.P\.:(\d+)/', $text, $matches);
-    $datos['codigo_postal'] = $matches[1] ?? null;
-
-    // Extraer estado
-    preg_match('/Estado:([^\n\t]+)/', $text, $matches);
-    $datos['estado'] = trim($matches[1] ?? '');
-
-    // Extraer teléfono
-    preg_match('/Teléfono:\((\d+)\)\-(\d+)/', $text, $matches);
-    $datos['telefono'] = isset($matches[1]) ? "({$matches[1]}) {$matches[2]}" : null;
-
-    // Extraer fecha de emisión
-    preg_match('/Fecha de emisión:\s+(\d{2}\/\w{3}\/\d{4})/', $text, $matches);
-    $datos['fecha_emision'] = $matches[1] ?? null;
-
-    // Extraer prima total
-    preg_match('/Prima Total:\s+\$([\d,]+\.\d{2})/', $text, $matches);
-    $datos['prima_total'] = isset($matches[1]) ? (float) str_replace(',', '', $matches[1]) : null;
-
-    // Extraer detalles del vehículo
-    preg_match('/Descripción:([^\n\t]+)/', $text, $matches);
-    $datos['descripcion_vehiculo'] = trim($matches[1] ?? '');
-
-    preg_match('/Marca:([^\n\t]+)/', $text, $matches);
-    $datos['marca_vehiculo'] = trim($matches[1] ?? '');
-
-    preg_match('/Modelo:(\d+)/', $text, $matches);
-    $datos['modelo_vehiculo'] = $matches[1] ?? null;
-
-    preg_match('/Placas:([^\n\t]+)/', $text, $matches);
-    $datos['placas_vehiculo'] = trim($matches[1] ?? '');
-
-    return $datos;
-}
-
+        $patterns = [
+            'numero_poliza' => '/No\. de Póliza\s+(\d+)/',
+            'nombre_cliente' => '/Nombre del Contratante:\s+([^\n]+?)(?:\s+R\.F\.C\.:|$)/', // Captura solo el nombre
+            'nombre_agente' => '/Intermediario:\s+\d+\s+([A-ZÁÉÍÓÚÑ\s]+)/',
+            'rfc' => '/R\.F\.C\.:?\s+([A-Z0-9]+)/', // Captura el RFC separado
+            'fecha_emision' => '/Fecha de emisión:\s+\d{2}:\d{2}hrs\s+(\d{2}\/[A-Z]{3}\/\d{4})/',
+            'fecha_fin' => '/Fin de vigencia:\s+\d{2}:\d{2}hrs\s+(\d{2}\/[A-Z]{3}\/\d{4})/',
+            'forma_pago' => '/Forma de pago:\s+([A-ZÁÉÍÓÚÑa-z]+)/',
+            'total_a_pagar' => '/Prima total:\s+\$ ([\d,\.]+)/',
+        ];
     
-}
+
+
+        $data = [];
+
+        foreach ($patterns as $key => $pattern) {
+            if (preg_match($pattern, $text, $matches)) {
+                $valor = trim(preg_replace('/_{2,}|▶|\s+/', ' ', $matches[1])); // Limpia guiones bajos y caracteres raros
+                
+                if (!empty($valor)) {
+                    $data[$key] = $valor;
+                }
+            }
+        }
+
+        return $data;
+        }
+
+        private function procesarDanios(String $text): array{
+            $pattern =[];
+
+            $data=[];
+            
+            
+        }
+        }

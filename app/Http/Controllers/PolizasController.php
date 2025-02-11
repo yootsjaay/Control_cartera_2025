@@ -112,50 +112,7 @@ class PolizasController extends Controller
             'general' => 'Ocurrió un error al procesar el PDF. La seleccion no coincide con el pdf.'
         ]);
     }
-}/*
-public function store(StorePolizaRequest $request)
-{
-    try {
-        $compania = Compania::findOrFail($request->compania_id);
-        $seguro = Seguro::findOrFail($request->seguro_id);
-        $ramo = Ramo::findOrFail($request->ramo_id);
-
-        $seguroService = SeguroFactory::crearSeguroService($compania->slug);
-
-        if ($request->hasFile('pdf')) {
-            foreach ($request->file('pdf') as $archivo) {
-                $datosExtraidos = $seguroService->extractToData($archivo, $seguro, $ramo);
-
-                if (!isset($datosExtraidos['numero_poliza'])) {
-                    throw new Exception('No se pudo extraer el número de póliza.');
-                }
-
-                $rutaArchivo = $archivo->store('polizas', 'public');
-
-                Poliza::create([
-                    'numero_poliza'  => $datosExtraidos['numero_poliza'],
-                    'vigencia_inicio'=> Carbon::parse($datosExtraidos['vigencia_inicio']),
-                    'vigencia_fin'   => Carbon::parse($datosExtraidos['vigencia_fin']),
-                    'forma_pago'     => $datosExtraidos['forma_pago'],
-                    'total_a_pagar'  => $datosExtraidos['total_a_pagar'],
-                    'archivo_pdf'    => $rutaArchivo,
-                    'status'         => 'activa',
-                    'cliente_id'     => $request->cliente_id,
-                    'compania_id'    => $compania->id,
-                    'seguro_id'      => $seguro->id
-                ]);
-            }
-        }
-
-        return redirect()->route('polizas.index')->with('success', 'Póliza(s) cargada(s) exitosamente.');
-    } catch (Exception $e) {
-        \Log::error('Error al procesar la póliza: ' . $e->getMessage());
-
-        return redirect()->back()->withErrors([
-            'general' => 'Ocurrió un error al procesar la póliza. Intenta nuevamente.'
-        ]);
-    }
-}*/
+}
 
 
 
