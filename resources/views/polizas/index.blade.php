@@ -6,21 +6,17 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 @stop
 
+
 @section('content')
-<div class="container-fluid">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h1 class="m-0 text-dark text-center">Gestión de Pólizas</h1>
-            <ol class="breadcrumb float-sm-right">
-                <li class="breadcrumb-item"><a href="{{ route('dashboard') }}"><i class="fas fa-home"></i> Inicio</a></li>
-                <li class="breadcrumb-item active"><i class="fas fa-file-contract"></i> Pólizas</li>
-            </ol>
+@if(session('success'))
+        <div class="alert alert-success">
+            {{ session('success') }}
         </div>
-    </div>
+    @endif
 
     <div class="card card-outline card-primary">
         <div class="card-header">
-            <h3 class="card-title">Registro de Pólizas</h3>
+            <h3 class="card-title">Lista de Pólizas</h3>
             <div class="card-tools">
                 <a href="{{ route('polizas.create') }}" class="btn btn-sm btn-primary">
                     <i class="fas fa-plus-circle mr-2"></i>Nueva Póliza

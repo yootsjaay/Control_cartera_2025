@@ -105,56 +105,48 @@ document.addEventListener('DOMContentLoaded', function () {
     const ramoSelect = document.getElementById('ramo_id');
     const loadingRamos = document.getElementById('loadingRamos');
 
-    // Al seleccionar una compañía, cargar los seguros relacionados
     companiaSelect.addEventListener('change', function () {
         const companiaId = this.value;
+        seguroSelect.innerHTML = '<option value="" disabled selected>Cargando seguros...</option>';
+        ramoSelect.innerHTML = '<option value="" disabled selected>Seleccione un ramo</option>';
 
-        if (companiaId) {
-            seguroSelect.innerHTML = '<option value="" disabled selected>Seleccione un seguro</option>';
-            ramoSelect.innerHTML = '<option value="" disabled selected>Seleccione un ramo</option>';
-            
-            fetch(`/obtener-seguros/${companiaId}`)
-                .then(response => response.json())
-                .then(data => {
-                    data.forEach(seguro => {
-                        const option = document.createElement('option');
-                        option.value = seguro.id;
-                        option.textContent = seguro.nombre;
-                        seguroSelect.appendChild(option);
-                    });
-                })
-                .catch(error => {
-                    console.error('Error al cargar seguros:', error);
+        fetch(`/obtener-seguros/${companiaId}`)
+            .then(response => response.json())
+            .then(data => {
+                seguroSelect.innerHTML = '<option value="" disabled selected>Seleccione un seguro</option>';
+                data.forEach(seguro => {
+                    const option = document.createElement('option');
+                    option.value = seguro.id;
+                    option.textContent = seguro.nombre;
+                    seguroSelect.appendChild(option);
                 });
-        }
+            })
+            .catch(error => console.error('Error:', error));
     });
 
-    // Al seleccionar un seguro, cargar los ramos relacionados
     seguroSelect.addEventListener('change', function () {
         const seguroId = this.value;
+        ramoSelect.innerHTML = '<option value="" disabled selected>Cargando ramos...</option>';
+        loadingRamos.classList.remove('d-none');
 
-        if (seguroId) {
-            ramoSelect.innerHTML = '<option value="" disabled selected>Seleccione un ramo</option>';
-            loadingRamos.classList.remove('d-none');
-
-            fetch(`/obtener-ramos/${seguroId}`)
-                .then(response => response.json())
-                .then(data => {
-                    loadingRamos.classList.add('d-none');
-                    data.forEach(ramos => {
-                        const option = document.createElement('option');
-                        option.value = ramos.id;
-                        option.textContent = ramos.nombre_ramo;
-                        ramoSelect.appendChild(option);
-                    });
-                })
-                .catch(error => {
-                    console.error('Error al cargar ramos:', error);
-                    loadingRamos.textContent = 'Error al cargar ramos. Intenta nuevamente.';
-                    setTimeout(() => loadingRamos.classList.add('d-none'), 3000);
+        fetch(`/obtener-ramos/${seguroId}`)
+            .then(response => response.json())
+            .then(data => {
+                loadingRamos.classList.add('d-none');
+                ramoSelect.innerHTML = '<option value="" disabled selected>Seleccione un ramo</option>';
+                data.forEach(ramo => {
+                    const option = document.createElement('option');
+                    option.value = ramo.id;
+                    option.textContent = ramo.nombre_ramo;
+                    ramoSelect.appendChild(option);
                 });
-        }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                loadingRamos.textContent = 'Error al cargar ramos.';
+            });
     });
 });
+
 </script>
 @stop

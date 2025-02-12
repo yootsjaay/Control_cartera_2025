@@ -86,21 +86,26 @@ class PolizasController extends Controller
     public function store(StorePolizaRequest $request)
 {
     try {
-        $compania = Compania::find($request->compania_id);
-        $seguro = Seguro::find($request->seguro_id);
-        $ramo = Ramo::find($request->ramo_id);
-        
+        $compania = Compania::findOrFail($request->compania_id);
+        $seguro = Seguro::findOrFail($request->seguro_id);
+        $ramo = Ramo::findOrFail($request->ramo_id);
 
         // Crear el servicio basado en la compañía
         $seguroService = SeguroFactory::crearSeguroService($compania->slug);
 
-        // Procesar cada archivo PDF subido
+        // Verificar si hay archivos PDF cargados
         if ($request->hasFile('pdf')) {
             foreach ($request->file('pdf') as $archivo) {
-                // Pasamos los valores validados sin miedo a que sean incorrectos
+                // Extraer texto del PDF con OCR
                 $text = $seguroService->extractToData($archivo, $seguro, $ramo);
+
+                // Guardar en logs para depuración
+                //\Log::info("Texto extraído del PDF:", ['data' => substr(is_array($text) ? implode(" ", $text) : $text, 0, 500)]);
+                dd($text);
+               //dd(implode("\n", $text));
+
+                // Guardar el texto en base de datos (ejemplo)
                 
-               dd($text);
             }
         }
 
@@ -109,10 +114,11 @@ class PolizasController extends Controller
         \Log::error('Error al procesar el PDF: ' . $e->getMessage());
 
         return redirect()->back()->withErrors([
-            'general' => 'Ocurrió un error al procesar el PDF. La seleccion no coincide con el pdf.'
+            'general' => 'Ocurrió un error al procesar el PDF. La selección no coincide con el archivo.',
         ]);
     }
 }
+
 
 
 

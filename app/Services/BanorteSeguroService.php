@@ -42,38 +42,58 @@ class BanorteSeguroService implements SeguroServiceInterface
             ->get(['id', 'nombre_ramo']);
     }
     public function extractToData(UploadedFile $archivo, Seguro $seguro, Ramo $ramo): array
-{
-    if ($seguro->compania->slug !== 'banorte') {
-        throw new InvalidArgumentException("El seguro seleccionado no pertenece a Banorte.");
-    }
-
-    if ($ramo->id_seguros != $seguro->id) {
-        throw new InvalidArgumentException("El ramo seleccionado no corresponde al seguro proporcionado.");
-    }
-
-    try {
-        // Procesar el PDF
-        $pdfParser = new Parser();
-        $pdf = $pdfParser->parseFile($archivo->getPathname());
-
-        // Validar si el PDF tiene contenido
-        $text = trim($pdf->getText());
-        if (empty($text)) {
-            throw new InvalidArgumentException("El PDF no contiene texto legible.");
+    {
+        if ($seguro->compania->slug !== 'banorte') {
+            throw new InvalidArgumentException("El seguro seleccionado no pertenece a HDI.");
         }
 
-        \Log::info("Texto extraído del PDF:", ['data' => substr($text, 0, 500)]);
+        if ($ramo->id_seguros != $seguro->id) {
+            throw new InvalidArgumentException("El ramo seleccionado no corresponde al seguro proporcionado.");
+        }
 
-        // **Llamamos al método específico según el ramo**
-   return $this->procesarTexto($text, $ramo);
-     // dd($text);
+        try {
+            // Convertir el PDF a imágenes y extraer el texto con OCR
+            $text = $this->extractTextWithOCR($archivo);
 
-    } catch (Exception $e) {
-        \Log::error("Error al procesar el PDF: " . $e->getMessage());
-        throw new InvalidArgumentException("No se pudo procesar el archivo PDF.");
+            \Log::info("Texto extraído:", ['data' => substr($text, 0, 500)]);
+            return $this->procesarTexto($text, $ramo);
+        } catch (Exception $e) {
+            \Log::error("Error al procesar el PDF: " . $e->getMessage());
+            throw new InvalidArgumentException("No se pudo procesar el archivo PDF.");
+        }
     }
-}
 
+    private function extractTextWithOCR(UploadedFile $archivo): string
+    {
+        $outputDir = storage_path('app/pdf_images');
+        if (!is_dir($outputDir)) {
+            mkdir($outputDir, 0777, true);
+        }
+
+        // Ruta del PDF original
+        $pdfPath = $archivo->getPathname();
+        $imagePattern = "{$outputDir}/page-%04d.png";
+
+        // Convertir PDF a imágenes (1 imagen por página)
+        exec("convert -density 300 {$pdfPath} -depth 8 -strip -background white -alpha off {$imagePattern}");
+
+        // Obtener todas las imágenes generadas
+        $images = glob("{$outputDir}/*.png");
+        if (empty($images)) {
+            throw new Exception("No se generaron imágenes del PDF.");
+        }
+
+        $fullText = '';
+
+        foreach ($images as $image) {
+            // Aplicar OCR con Tesseract en cada imagen
+            $outputText = shell_exec("tesseract {$image} stdout -l spa+eng"); // Español + Inglés
+            $fullText .= trim($outputText) . "\n";
+            unlink($image); // Eliminar la imagen temporal
+        }
+
+        return trim($fullText);
+    }
 
 
     private function procesarTexto(string $text, Ramo $ramo): array

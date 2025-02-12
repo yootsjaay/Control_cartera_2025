@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use Illuminate\Http\UploadedFile;
@@ -11,23 +12,6 @@ use Exception;
 
 class HdiSegurosService implements SeguroServiceInterface
 {
-    public function getSeguros()
-    {
-        $compania = Compania::where('slug', $slug)->firstOrFail();
-
-    return Seguro::where('compania_id', $compania->id)->get(['id', 'nombre']);
-    }
-
-    /**
-     * Obtiene los ramos disponibles para un seguro específico de HDI.
-     */
-    public function getRamos($seguroId)
-    {
-        return Ramo::where('id_seguros', $seguroId)
-            ->get(['id', 'nombre_ramo']);
-    }
-  
-    // Método para extraer datos del PDF
     public function extractToData(UploadedFile $archivo, Seguro $seguro, Ramo $ramo): array
     {
         if ($seguro->compania->slug !== 'hdi_seguros') {
@@ -39,25 +23,47 @@ class HdiSegurosService implements SeguroServiceInterface
         }
 
         try {
-            // Procesar el PDF
-            $pdfParser = new Parser();
-            $pdf = $pdfParser->parseFile($archivo->getPathname());
+            // Convertir el PDF a imágenes y extraer el texto con OCR
+            $text = $this->extractTextWithOCR($archivo);
 
-            // Validar si el PDF tiene contenido
-            $text = trim($pdf->getText());
-            if (empty($text)) {
-                throw new InvalidArgumentException("El PDF no contiene texto legible.");
-            }
-
-            \Log::info("Texto extraído del PDF:", ['data' => substr($text, 0, 500)]);
-
-            // Llamamos al método específico según el ramo
-           return $this->procesarTexto($text, $ramo);
-            //dd($text);
+            \Log::info("Texto extraído:", ['data' => substr($text, 0, 500)]);
+            return $this->procesarTexto($text, $ramo);
         } catch (Exception $e) {
             \Log::error("Error al procesar el PDF: " . $e->getMessage());
             throw new InvalidArgumentException("No se pudo procesar el archivo PDF.");
         }
+    }
+
+    private function extractTextWithOCR(UploadedFile $archivo): string
+    {
+        $outputDir = storage_path('app/pdf_images');
+        if (!is_dir($outputDir)) {
+            mkdir($outputDir, 0777, true);
+        }
+
+        // Ruta del PDF original
+        $pdfPath = $archivo->getPathname();
+        $imagePattern = "{$outputDir}/page-%04d.png";
+
+        // Convertir PDF a imágenes (1 imagen por página)
+        exec("convert -density 300 {$pdfPath} -depth 8 -strip -background white -alpha off {$imagePattern}");
+
+        // Obtener todas las imágenes generadas
+        $images = glob("{$outputDir}/*.png");
+        if (empty($images)) {
+            throw new Exception("No se generaron imágenes del PDF.");
+        }
+
+        $fullText = '';
+
+        foreach ($images as $image) {
+            // Aplicar OCR con Tesseract en cada imagen
+            $outputText = shell_exec("tesseract {$image} stdout -l spa+eng"); // Español + Inglés
+            $fullText .= trim($outputText) . "\n";
+            unlink($image); // Eliminar la imagen temporal
+        }
+
+        return trim($fullText);
     }
 
     private function procesarTexto(string $text, Ramo $ramo): array
@@ -78,25 +84,49 @@ class HdiSegurosService implements SeguroServiceInterface
     }
 
     private function procesarAutos(string $text): array
-{   $datos = [];
+{   
+    $datos = [];
 
-    // Extraer agente (captura solo el nombre)
-    $datos['agente'] = $this->extraerDato($text, '/Agente:\s*(\d+\s+[A-Za-zÁÉÍÓÚáéíóúñÑ\s\.\-]+)/');
+    // Extraer número de póliza
+    $datos['numero_poliza'] = $this->extraerDato($text, '/Cotización:\s*(\d+)/');
 
-    // Extraer vigencia (fecha de inicio y fin)
-    $datos['vigencia_inicio'] = $this->extraerDato($text, '/vigencia:Desde las 12:00 hrs\. del\s*(\d{2}\/\d{2}\/\d{4})/');
-    $datos['vigencia_fin'] = $this->extraerDato($text, '/Hasta las 12:00 hrs\. del\s*(\d{2}\/\d{2}\/\d{4})/');
+    // Extraer RFC
+    $datos['rfc'] = $this->extraerDato($text, '/RFC:\s*([A-Z0-9]{12,13})/');
 
-    // Extraer descripción del paquete (captura solo el nombre)
-    $datos['paquete'] = $this->extraerDato($text, '/Paquete:\s*([A-Za-zÁÉÍÓÚáéíóúñÑ\s]+)/');
+    // Extraer nombre del cliente
+    $datos['nombre_cliente'] = $this->extraerDato($text, '/Nombre:\s*([A-Za-zÁÉÍÓÚáéíóúñÑ\s\.\-]+)/');
 
-    
-   
-    // Extraer prima neta
-    $datos['prima_neta'] = $this->extraerDato($text, '/Prima Neta\s*([\d,]+\.\d{2})/');
+    // Extraer agente (número y nombre por separado)
+    if (preg_match('/Agente:\s*(\d+)\s+([A-ZÁÉÍÓÚÑa-záéíóúñ\s\.\-]+)/', $text, $matches)) {
+        $datos['numero_agente'] = trim($matches[1]);
+        $datos['nombre_agente'] = trim($matches[2]);
+    } else {
+        $datos['numero_agente'] = null;
+        $datos['nombre_agente'] = null;
+    }
 
-    // Extraer total a pagar
-    $datos['total_pagar'] = $this->extraerDato($text, '/Total a Pagar[\s\S]*?([\d,]+\.\d{2})/');
+    // Extraer vigencia (Inicio y Fin)
+    if (preg_match_all('/(\d{2}\/\d{2}\/\d{4})/', $text, $matches) && count($matches[1]) >= 2) {
+        $datos['vigencia_inicio'] = $matches[1][0];
+        $datos['vigencia_fin'] = $matches[1][1];
+    } else {
+        $datos['vigencia_inicio'] = null;
+        $datos['vigencia_fin'] = null;
+    }
+
+    // Extraer forma de pago
+    $datos['forma_pago'] = $this->extraerDato($text, '/(ANUAL\s+EFECTIVO|Pago\s+Fraccionado|Mensualidad)/');
+
+    // Extraer paquete
+    $datos['paquete'] = $this->extraerDato($text, '/Paquete:\s*([\wÁÉÍÓÚáéíóúñÑ\s]+)/');
+
+    // Extraer prima neta y total a pagar
+    $datos['prima_neta'] = $this->extraerDato($text, '/Prima Neta.*?([\d,]+\.\d{2})/');
+    $datos['total_a_pagar'] = $this->extraerDato($text, '/Total a Pagar.*?([\d,]+\.\d{2})/');
+
+    // Normalizar valores numéricos
+    $datos['prima_neta'] = isset($datos['prima_neta']) ? floatval(str_replace(',', '', $datos['prima_neta'])) : null;
+    $datos['total_a_pagar'] = isset($datos['total_a_pagar']) ? floatval(str_replace(',', '', $datos['total_a_pagar'])) : null;
 
     return $datos;
 }
@@ -108,6 +138,7 @@ private function extraerDato($text, $pattern, $default = null)
     }
     return $default;
 }
+
 
 
 
