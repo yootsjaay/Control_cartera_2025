@@ -26,8 +26,9 @@ class HdiSegurosService implements SeguroServiceInterface
             // Convertir el PDF a imágenes y extraer el texto con OCR
             $text = $this->extractTextWithOCR($archivo);
 
-            \Log::info("Texto extraído:", ['data' => substr($text, 0, 500)]);
-            return $this->procesarTexto($text, $ramo);
+            //\Log::info("Texto extraído:", ['data' => substr($text, 0, 500)]);
+           return $this->procesarTexto($text, $ramo);
+           // dd($text);
         } catch (Exception $e) {
             \Log::error("Error al procesar el PDF: " . $e->getMessage());
             throw new InvalidArgumentException("No se pudo procesar el archivo PDF.");
@@ -35,36 +36,59 @@ class HdiSegurosService implements SeguroServiceInterface
     }
 
     private function extractTextWithOCR(UploadedFile $archivo): string
-    {
-        $outputDir = storage_path('app/pdf_images');
-        if (!is_dir($outputDir)) {
-            mkdir($outputDir, 0777, true);
+{
+    // Definir el directorio de salida
+    $outputDir = storage_path('app/pdf_images');
+    
+    // Verificar si el directorio de salida existe, si no, crear
+    if (!is_dir($outputDir)) {
+        if (!mkdir($outputDir, 0777, true)) {
+            throw new Exception("No se pudo crear el directorio para las imágenes.");
         }
-
-        // Ruta del PDF original
-        $pdfPath = $archivo->getPathname();
-        $imagePattern = "{$outputDir}/page-%04d.png";
-
-        // Convertir PDF a imágenes (1 imagen por página)
-        exec("convert -density 300 {$pdfPath} -depth 8 -strip -background white -alpha off {$imagePattern}");
-
-        // Obtener todas las imágenes generadas
-        $images = glob("{$outputDir}/*.png");
-        if (empty($images)) {
-            throw new Exception("No se generaron imágenes del PDF.");
-        }
-
-        $fullText = '';
-
-        foreach ($images as $image) {
-            // Aplicar OCR con Tesseract en cada imagen
-            $outputText = shell_exec("tesseract {$image} stdout -l spa+eng"); // Español + Inglés
-            $fullText .= trim($outputText) . "\n";
-            unlink($image); // Eliminar la imagen temporal
-        }
-
-        return trim($fullText);
     }
+
+    // Ruta del PDF original
+    $pdfPath = $archivo->getPathname();
+    
+    // Ruta de salida para las imágenes
+    $imagePattern = "{$outputDir}/page-%04d.png";
+
+    // Convertir PDF a imágenes (1 imagen por página)
+    $convertCmd = "convert -density 300 {$pdfPath} -depth 8 -strip -background white -alpha off {$imagePattern}";
+    exec($convertCmd, $output, $returnCode);
+
+    // Verificar si el comando se ejecutó correctamente
+    if ($returnCode !== 0) {
+        throw new Exception("Hubo un error al convertir el PDF en imágenes.");
+    }
+
+    // Obtener todas las imágenes generadas
+    $images = glob("{$outputDir}/*.png");
+    if (empty($images)) {
+        throw new Exception("No se generaron imágenes del PDF.");
+    }
+
+    $fullText = '';
+
+    // Procesar cada imagen con OCR (Tesseract)
+    foreach ($images as $image) {
+        // Ejecutar OCR con Tesseract
+        $outputText = shell_exec("tesseract {$image} stdout -l spa+eng"); // Español + Inglés
+        
+        // Verificar si Tesseract retornó un resultado
+        if ($outputText === null) {
+            throw new Exception("OCR no pudo procesar la imagen: {$image}");
+        }
+
+        $fullText .= trim($outputText) . "\n";
+
+        // Eliminar la imagen temporal después de procesarla
+        unlink($image);
+    }
+
+    return trim($fullText);
+}
+
 
     private function procesarTexto(string $text, Ramo $ramo): array
     {
@@ -84,60 +108,71 @@ class HdiSegurosService implements SeguroServiceInterface
     }
 
     private function procesarAutos(string $text): array
-{   
-    $datos = [];
-
-    // Extraer número de póliza
-    $datos['numero_poliza'] = $this->extraerDato($text, '/Cotización:\s*(\d+)/');
-
-    // Extraer RFC
-    $datos['rfc'] = $this->extraerDato($text, '/RFC:\s*([A-Z0-9]{12,13})/');
-
-    // Extraer nombre del cliente
-    $datos['nombre_cliente'] = $this->extraerDato($text, '/Nombre:\s*([A-Za-zÁÉÍÓÚáéíóúñÑ\s\.\-]+)/');
-
-    // Extraer agente (número y nombre por separado)
-    if (preg_match('/Agente:\s*(\d+)\s+([A-ZÁÉÍÓÚÑa-záéíóúñ\s\.\-]+)/', $text, $matches)) {
-        $datos['numero_agente'] = trim($matches[1]);
-        $datos['nombre_agente'] = trim($matches[2]);
-    } else {
-        $datos['numero_agente'] = null;
-        $datos['nombre_agente'] = null;
+    {
+        $datos = [];
+        
+        // Normalizar texto: eliminar múltiples espacios y saltos de línea
+        $text = preg_replace('/\s+/', ' ', $text);
+        $text = trim($text);
+    
+        // Extraer número de póliza
+        $datos['numero_poliza'] = $this->extraerDato($text, '/Cotización:\s*(\d{10})/');
+    
+        // Extraer RFC (si existe)
+        $datos['rfc'] = $this->extraerDato($text, '/RFC:\s*([A-Z0-9]{12,13})/i');
+    
+        // Extraer nombre del cliente (mejorado)
+        $datos['nombre_cliente'] = $this->extraerDato($text, '/Nombre:\s*([A-Za-zÁÉÍÓÚáéíóúñÑ\s\.\-]+)/i');
+    
+        // Extraer agente (mejorado)
+        if (preg_match('/Agente:\s*(\d+)\s+([A-ZÁÉÍÓÚÑa-záéíóúñ\s\.\-]+)/i', $text, $matches)) {
+            $datos['numero_agente'] = trim($matches[1]);
+            $datos['nombre_agente'] = trim($matches[2]);
+        } else {
+            $datos['numero_agente'] = null;
+            $datos['nombre_agente'] = null;
+        }
+    
+        // Extraer vigencia (mejorado)
+        if (preg_match_all('/(\d{2}\/\d{2}\/\d{4})/', $text, $matches) && count($matches[1]) >= 2) {
+            $datos['vigencia_inicio'] = $this->formatearFecha($matches[1][0]);
+            $datos['vigencia_fin'] = $this->formatearFecha($matches[1][1]);
+        } else {
+            $datos['vigencia_inicio'] = null;
+            $datos['vigencia_fin'] = null;
+        }
+    
+        // Extraer forma de pago (mejorado)
+        $datos['forma_pago'] = $this->extraerDato($text, '/(ANUAL\s+EFECTIVO|Pago\s+Fraccionado|Mensualidad)/i');
+    
+        // Extraer paquete (mejorado)
+        $datos['paquete'] = $this->extraerDato($text, '/Paquete:\s*([\wÁÉÍÓÚáéíóúñÑ\s\-]+)/i');
+    
+        // Extraer montos (mejorado)
+        $datos['prima_neta'] = $this->extraerMonto($text, '/Prima Neta.*?([\d,]+\.\d{2})/');
+        $datos['total_a_pagar'] = $this->extraerMonto($text, '/Total a Pagar.*?([\d,]+\.\d{2})/');
+    
+        return $datos;
     }
-
-    // Extraer vigencia (Inicio y Fin)
-    if (preg_match_all('/(\d{2}\/\d{2}\/\d{4})/', $text, $matches) && count($matches[1]) >= 2) {
-        $datos['vigencia_inicio'] = $matches[1][0];
-        $datos['vigencia_fin'] = $matches[1][1];
-    } else {
-        $datos['vigencia_inicio'] = null;
-        $datos['vigencia_fin'] = null;
+    
+    private function extraerDato(string $text, string $pattern, $default = null)
+    {
+        if (preg_match($pattern, $text, $matches)) {
+            return trim($matches[1]);
+        }
+        return $default;
     }
-
-    // Extraer forma de pago
-    $datos['forma_pago'] = $this->extraerDato($text, '/(ANUAL\s+EFECTIVO|Pago\s+Fraccionado|Mensualidad)/');
-
-    // Extraer paquete
-    $datos['paquete'] = $this->extraerDato($text, '/Paquete:\s*([\wÁÉÍÓÚáéíóúñÑ\s]+)/');
-
-    // Extraer prima neta y total a pagar
-    $datos['prima_neta'] = $this->extraerDato($text, '/Prima Neta.*?([\d,]+\.\d{2})/');
-    $datos['total_a_pagar'] = $this->extraerDato($text, '/Total a Pagar.*?([\d,]+\.\d{2})/');
-
-    // Normalizar valores numéricos
-    $datos['prima_neta'] = isset($datos['prima_neta']) ? floatval(str_replace(',', '', $datos['prima_neta'])) : null;
-    $datos['total_a_pagar'] = isset($datos['total_a_pagar']) ? floatval(str_replace(',', '', $datos['total_a_pagar'])) : null;
-
-    return $datos;
-}
-
-private function extraerDato($text, $pattern, $default = null)
-{
-    if (preg_match($pattern, $text, $matches)) {
-        return trim($matches[1]);
+    
+    private function extraerMonto(string $text, string $pattern): ?float
+    {
+        $monto = $this->extraerDato($text, $pattern);
+        return $monto ? (float) str_replace(',', '', $monto) : null;
     }
-    return $default;
-}
+    
+    private function formatearFecha(string $fecha): string
+    {
+        return \DateTime::createFromFormat('d/m/Y', $fecha)->format('Y-m-d');
+    }
 
 
 
