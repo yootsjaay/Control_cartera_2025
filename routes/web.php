@@ -37,12 +37,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // web.php
      
         // Ruta para obtener los seguros relacionados con una compañía
-       Route::get('/obtener-seguros/{companiaId}', [PolizasController::class, 'obtenerSeguros'])->name('polizas.obtener-seguros');
-
-        // Ruta para obtener los ramos relacionados con un seguro
-        Route::get('/obtener-ramos/{seguroId}', [PolizasController::class, 'obtenerRamos'])->name('polizas.obtener-ramos');
-        
-       
+        Route::get('/obtener-recursos', [PolizasController::class, 'obtenerRecursos']);
         Route::resource('/companias', CompaniasController::class);
         Route::resource('/seguros', SegurosRamoController::class);
 

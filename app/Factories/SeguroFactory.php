@@ -6,39 +6,25 @@ use App\Services\SeguroServiceInterface;
 use Illuminate\Support\Facades\Config;
 use InvalidArgumentException;
 
-/**
- * Factory para crear instancias de servicios de seguros.
- */
-class SeguroFactory
-{
-    /**
-     * Crea y retorna una instancia de SeguroServiceInterface basado en el slug de la compañía.
-     *
-     * @param string $slug Slug de la compañía aseguradora.
-     * @return SeguroServiceInterface
-     *
-     * @throws InvalidArgumentException Si el slug no está configurado o el servicio no implementa la interfaz.
-     */
-    public static function crearSeguroService(string $slug): SeguroServiceInterface
-{
-    $servicios = Config::get('aseguradoras.servicios', []);
 
-    if (!isset($servicios[$slug])) {
-        throw new InvalidArgumentException(
-            "Compañía con slug '{$slug}' no está soportada. Aseguradoras disponibles: " . implode(', ', array_keys($servicios))
-        );
+class SeguroServiceFactory
+{
+    protected $servicios;
+
+    public function __construct(array $servicios)
+    {
+        $this->servicios = $servicios;
     }
 
-    $serviceClass = $servicios[$slug];
-    $service = resolve($serviceClass);
+    public function createFromRequest(Request $request): SeguroServiceInterface
+    {
+        $slug = $request->input('compania_slug'); // slug de la compañía del request
 
-    if (!$service instanceof SeguroServiceInterface) {
-        throw new InvalidArgumentException("El servicio '{$serviceClass}' no implementa SeguroServiceInterface.");
+        if (!isset($this->servicios[$slug])) {
+            throw new \InvalidArgumentException("Compañía no soportada: " . $slug);
+        }
+
+        $serviceClass = $this->servicios[$slug];
+        return app($serviceClass); //  app() para instanciar, permitiendo inyección de dependencias
     }
-
-   
-
-    return $service;
-}
-
 }

@@ -7,11 +7,22 @@ use Smalot\PdfParser\Parser;
 use App\Models\Seguro;
 use App\Models\Ramo;
 use InvalidArgumentException;
-use Carbon\Carbon;
 use Exception;
 
 class HdiSegurosService implements SeguroServiceInterface
 {
+    // Definir constantes para los slugs de los ramos
+    const RAMO_MEDICA_TOTAL_PLUS = 'medica-total-plus';
+    const RAMO_VEHICULOS = 'vehiculos-residentes-hdi-autos-y-pick-ups';
+    const RAMO_DANIOS = 'danios';
+
+    protected $parser; // Inyecta el parser
+
+    public function __construct(Parser $parser)
+    {
+        $this->parser = $parser;
+    }
+
     public function extractToData(UploadedFile $archivo, Seguro $seguro, Ramo $ramo): array
     {
         if ($seguro->compania->slug !== 'hdi_seguros') {
@@ -23,158 +34,115 @@ class HdiSegurosService implements SeguroServiceInterface
         }
 
         try {
-            // Convertir el PDF a imágenes y extraer el texto con OCR
-            $text = $this->extractTextWithOCR($archivo);
-
-            //\Log::info("Texto extraído:", ['data' => substr($text, 0, 500)]);
-           return $this->procesarTexto($text, $ramo);
-           // dd($text);
+            $text = $this->extractText($archivo); // Usa el nuevo método extractText
+            \Log::info("Texto extraído:", ['data' => substr($text, 0, 500)]);
+            return $this->procesarTexto($text, $ramo);
+           //dd($text);
         } catch (Exception $e) {
             \Log::error("Error al procesar el PDF: " . $e->getMessage());
-            throw new InvalidArgumentException("No se pudo procesar el archivo PDF.");
+            throw new InvalidArgumentException("No se pudo procesar el archivo PDF: " . $e->getMessage());
         }
     }
 
-    private function extractTextWithOCR(UploadedFile $archivo): string
-{
-    // Definir el directorio de salida
-    $outputDir = storage_path('app/pdf_images');
-    
-    // Verificar si el directorio de salida existe, si no, crear
-    if (!is_dir($outputDir)) {
-        if (!mkdir($outputDir, 0777, true)) {
-            throw new Exception("No se pudo crear el directorio para las imágenes.");
+    private function extractText(UploadedFile $archivo): string
+    {
+        try {
+            $pdf = $this->parser->parseFile($archivo->getPathname()); // Usa el parser inyectado
+            $text = $pdf->getText();
+            return $text;
+        } catch (\Exception $e) {
+            \Log::error("Error al parsear el PDF: " . $e->getMessage());
+            throw new Exception("Error al procesar el PDF.");
         }
     }
-
-    // Ruta del PDF original
-    $pdfPath = $archivo->getPathname();
-    
-    // Ruta de salida para las imágenes
-    $imagePattern = "{$outputDir}/page-%04d.png";
-
-    // Convertir PDF a imágenes (1 imagen por página)
-    $convertCmd = "convert -density 300 {$pdfPath} -depth 8 -strip -background white -alpha off {$imagePattern}";
-    exec($convertCmd, $output, $returnCode);
-
-    // Verificar si el comando se ejecutó correctamente
-    if ($returnCode !== 0) {
-        throw new Exception("Hubo un error al convertir el PDF en imágenes.");
-    }
-
-    // Obtener todas las imágenes generadas
-    $images = glob("{$outputDir}/*.png");
-    if (empty($images)) {
-        throw new Exception("No se generaron imágenes del PDF.");
-    }
-
-    $fullText = '';
-
-    // Procesar cada imagen con OCR (Tesseract)
-    foreach ($images as $image) {
-        // Ejecutar OCR con Tesseract
-        $outputText = shell_exec("tesseract {$image} stdout -l spa+eng"); // Español + Inglés
-        
-        // Verificar si Tesseract retornó un resultado
-        if ($outputText === null) {
-            throw new Exception("OCR no pudo procesar la imagen: {$image}");
-        }
-
-        $fullText .= trim($outputText) . "\n";
-
-        // Eliminar la imagen temporal después de procesarla
-        unlink($image);
-    }
-
-    return trim($fullText);
-}
 
 
     private function procesarTexto(string $text, Ramo $ramo): array
     {
-        // Normalizamos el slug a minúsculas y lo comparamos con valores estandarizados
-        $slug = strtolower($ramo->slug);
-
-        switch ($slug) {
-            case 'medica-total-plus':
+        switch (strtolower($ramo->slug)) {
+            case self::RAMO_MEDICA_TOTAL_PLUS:
                 return $this->procesarGastosMedicosTotal($text);
-            case 'vehiculos-residentes-hdi-autos-y-pick-ups': // Usar un slug estandarizado en BD
+            case self::RAMO_VEHICULOS:
                 return $this->procesarAutos($text);
-            case 'danios':
+            case self::RAMO_DANIOS:
                 return $this->procesarDanios($text);
             default:
                 throw new InvalidArgumentException("El ramo {$ramo->slug} no tiene un procesador definido.");
         }
     }
 
+ 
+
     private function procesarAutos(string $text): array
-    {
-        $datos = [];
-        
-        // Normalizar texto: eliminar múltiples espacios y saltos de línea
-        $text = preg_replace('/\s+/', ' ', $text);
-        $text = trim($text);
-    
-        // Extraer número de póliza
-        $datos['numero_poliza'] = $this->extraerDato($text, '/Cotización:\s*(\d{10})/');
-    
-        // Extraer RFC (si existe)
-        $datos['rfc'] = $this->extraerDato($text, '/RFC:\s*([A-Z0-9]{12,13})/i');
-    
-        // Extraer nombre del cliente (mejorado)
-        $datos['nombre_cliente'] = $this->extraerDato($text, '/Nombre:\s*([A-Za-zÁÉÍÓÚáéíóúñÑ\s\.\-]+)/i');
-    
-        // Extraer agente (mejorado)
-        if (preg_match('/Agente:\s*(\d+)\s+([A-ZÁÉÍÓÚÑa-záéíóúñ\s\.\-]+)/i', $text, $matches)) {
-            $datos['numero_agente'] = trim($matches[1]);
-            $datos['nombre_agente'] = trim($matches[2]);
-        } else {
-            $datos['numero_agente'] = null;
-            $datos['nombre_agente'] = null;
-        }
-    
-        // Extraer vigencia (mejorado)
-        if (preg_match_all('/(\d{2}\/\d{2}\/\d{4})/', $text, $matches) && count($matches[1]) >= 2) {
-            $datos['vigencia_inicio'] = $this->formatearFecha($matches[1][0]);
-            $datos['vigencia_fin'] = $this->formatearFecha($matches[1][1]);
-        } else {
-            $datos['vigencia_inicio'] = null;
-            $datos['vigencia_fin'] = null;
-        }
-    
-        // Extraer forma de pago (mejorado)
-        $datos['forma_pago'] = $this->extraerDato($text, '/(ANUAL\s+EFECTIVO|Pago\s+Fraccionado|Mensualidad)/i');
-    
-        // Extraer paquete (mejorado)
-        $datos['paquete'] = $this->extraerDato($text, '/Paquete:\s*([\wÁÉÍÓÚáéíóúñÑ\s\-]+)/i');
-    
-        // Extraer montos (mejorado)
-        $datos['prima_neta'] = $this->extraerMonto($text, '/Prima Neta.*?([\d,]+\.\d{2})/');
-        $datos['total_a_pagar'] = $this->extraerMonto($text, '/Total a Pagar.*?([\d,]+\.\d{2})/');
-    
-        return $datos;
+{
+    $datos = [];
+
+    // Normalizar texto: eliminar múltiples espacios y saltos de línea
+    $text = preg_replace('/\s+/', ' ', $text);
+    $text = trim($text);
+
+    // Nombre del cliente (mejorado)
+    if (preg_match('/(.*?)\nRFC:/', $text, $matches)) { // Busca el nombre antes de "RFC:"
+        $datos['nombre_cliente'] = trim($matches[1]);
     }
+
+    // RFC
+    $datos['rfc'] = $this->extraerDato($text, '/RFC:\s*([A-Z0-9]{12,13})/i');
+
+    // Número de póliza
+    $datos['numero_poliza'] = $this->extraerDato($text, '/Póliza:\s*([\d\-]+)/i');
+
+    // Vigencia (mejorado)
+    if (preg_match('/Vigencia:\s*Desde las \d{2}:\d{2} hrs\. del\s*(\d{2}\/\d{2}\/\d{4})\s*Hasta las \d{2}:\d{2} hrs\. del\s*(\d{2}\/\d{2}\/\d{4})/', $text, $matches)) {
+        $datos['vigencia_inicio'] = $this->formatearFecha($matches[1]);
+        $datos['vigencia_fin'] = $this->formatearFecha($matches[2]);
+    }
+
+    // Forma de pago (mejorado)
+    if (preg_match('/(ANUAL|SEMESTRAL|TRIMESTRAL|MENSUAL)\s*(EFECTIVO|CHEQUE|TARJETA)?/i', $text, $matches)) {
+        $datos['forma_pago'] = trim($matches[0]); // Toma la coincidencia completa
+    } else {
+        $datos['forma_pago'] = 'NO ESPECIFICADA'; // Valor por defecto si no se encuentra
+    }
+
+    // Agente (mejorado)
+    if (preg_match('/Agente:\s*(\d+)\s+([A-ZÁÉÍÓÚÑa-záéíóúñ\s\.\-]+)/i', $text, $matches)) {
+        $datos['numero_agente'] = trim($matches[1]);
+        $datos['nombre_agente'] = trim($matches[2]);
+    }
+
     
+   
+      // Extraer el total a pagar
+      if (preg_match('/([0-9,]+\.\d{2})\s*Total a Pagar/', $text, $matches)) {
+        $datos['total_pagar'] = trim($matches[1]);
+    } else {
+        $datos['total_pagar'] = 'No encontrado';
+    }
+    return $datos;
+    //dd($datos);
+}
+
     private function extraerDato(string $text, string $pattern, $default = null)
-    {
-        if (preg_match($pattern, $text, $matches)) {
-            return trim($matches[1]);
-        }
-        return $default;
+{
+    if (preg_match($pattern, $text, $matches)) {
+        return trim($matches[1]);
     }
-    
-    private function extraerMonto(string $text, string $pattern): ?float
-    {
-        $monto = $this->extraerDato($text, $pattern);
-        return $monto ? (float) str_replace(',', '', $monto) : null;
-    }
-    
-    private function formatearFecha(string $fecha): string
-    {
-        return \DateTime::createFromFormat('d/m/Y', $fecha)->format('Y-m-d');
-    }
+    return $default;
+}
 
+private function extraerMonto(string $text, string $pattern): ?float
+{
+    if (preg_match($pattern, $text, $matches)) {
+        return (float) str_replace(',', '', $matches[1]);
+    }
+    return null;
+}
 
+private function formatearFecha(string $fecha): string
+{
+    return \DateTime::createFromFormat('d/m/Y', $fecha)->format('Y-m-d');
+}
 
 
 
@@ -223,6 +191,7 @@ class HdiSegurosService implements SeguroServiceInterface
 
             
                 
-                return $datos;
+                //return $datos;
+        dd($text);
             }
 }

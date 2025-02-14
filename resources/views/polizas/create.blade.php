@@ -105,48 +105,43 @@ document.addEventListener('DOMContentLoaded', function () {
     const ramoSelect = document.getElementById('ramo_id');
     const loadingRamos = document.getElementById('loadingRamos');
 
-    companiaSelect.addEventListener('change', function () {
-        const companiaId = this.value;
-        seguroSelect.innerHTML = '<option value="" disabled selected>Cargando seguros...</option>';
-        ramoSelect.innerHTML = '<option value="" disabled selected>Seleccione un ramo</option>';
+    function cargarRecursos(modelo, id, selectElement) {
+        selectElement.innerHTML = '<option value="" disabled selected>Cargando...</option>';
 
-        fetch(`/obtener-seguros/${companiaId}`)
+        fetch(`/obtener-recursos?modelo=${modelo}&id=${id}`) // Usar query parameters
             .then(response => response.json())
             .then(data => {
-                seguroSelect.innerHTML = '<option value="" disabled selected>Seleccione un seguro</option>';
-                data.forEach(seguro => {
+                selectElement.innerHTML = '<option value="" disabled selected>Seleccione un ' + modelo + '</option>';
+                data.forEach(item => {
                     const option = document.createElement('option');
-                    option.value = seguro.id;
-                    option.textContent = seguro.nombre;
-                    seguroSelect.appendChild(option);
-                });
-            })
-            .catch(error => console.error('Error:', error));
-    });
-
-    seguroSelect.addEventListener('change', function () {
-        const seguroId = this.value;
-        ramoSelect.innerHTML = '<option value="" disabled selected>Cargando ramos...</option>';
-        loadingRamos.classList.remove('d-none');
-
-        fetch(`/obtener-ramos/${seguroId}`)
-            .then(response => response.json())
-            .then(data => {
-                loadingRamos.classList.add('d-none');
-                ramoSelect.innerHTML = '<option value="" disabled selected>Seleccione un ramo</option>';
-                data.forEach(ramo => {
-                    const option = document.createElement('option');
-                    option.value = ramo.id;
-                    option.textContent = ramo.nombre_ramo;
-                    ramoSelect.appendChild(option);
+                    option.value = item.id;
+                    option.textContent = (modelo === 'seguro') ? item.nombre : item.nombre_ramo; // Ajustar el texto
+                    selectElement.appendChild(option);
                 });
             })
             .catch(error => {
                 console.error('Error:', error);
-                loadingRamos.textContent = 'Error al cargar ramos.';
+                selectElement.innerHTML = '<option value="" disabled selected>Error al cargar</option>'; // Mostrar mensaje de error
             });
-    });
-});
+    }
 
+    companiaSelect.addEventListener('change', function () {
+        const companiaId = this.value;
+        cargarRecursos('seguro', companiaId, seguroSelect);
+        ramoSelect.innerHTML = '<option value="" disabled selected>Seleccione un ramo</option>'; // Reset ramos
+    });
+
+    seguroSelect.addEventListener('change', function () {
+        const seguroId = this.value;
+        cargarRecursos('ramo', seguroId, ramoSelect);
+    });
+
+    // Cargar seguros al cargar la página (si hay un valor preseleccionado en companiaSelect)
+    if (companiaSelect.value) {
+      cargarRecursos('seguro', companiaSelect.value, seguroSelect);
+    }
+
+
+});
 </script>
 @stop
