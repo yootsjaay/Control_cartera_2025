@@ -15,6 +15,7 @@ class HdiSegurosService implements SeguroServiceInterface
     const RAMO_MEDICA_TOTAL_PLUS = 'medica-total-plus';
     const RAMO_VEHICULOS = 'vehiculos-residentes-hdi-autos-y-pick-ups';
     const RAMO_DANIOS = 'danios';
+    const RAMO_MEDICA_VITAL = 'medica-vital';
 
     protected $parser; // Inyecta el parser
 
@@ -62,8 +63,12 @@ class HdiSegurosService implements SeguroServiceInterface
         switch (strtolower($ramo->slug)) {
             case self::RAMO_MEDICA_TOTAL_PLUS:
                 return $this->procesarGastosMedicosTotal($text);
+            case self::RAMO_MEDICA_VITAL:
+                return $this->procesarGastosMedicosVital($text);
             case self::RAMO_VEHICULOS:
                 return $this->procesarAutos($text);
+            case self::RAMO_CAMIONES_HASTA_3_5:
+                return $this->procesarCamionesHasta3_5($text);
             case self::RAMO_DANIOS:
                 return $this->procesarDanios($text);
             default:
@@ -138,13 +143,14 @@ private function extraerMonto(string $text, string $pattern): ?float
     }
     return null;
 }
-
-private function formatearFecha(string $fecha): string
+private function formatearFecha(string $fecha): ?string
 {
-    return \DateTime::createFromFormat('d/m/Y', $fecha)->format('Y-m-d');
+    try {
+        return \Carbon\Carbon::createFromFormat('d/M/Y', $fecha)->format('Y-m-d');
+    } catch (\Exception $e) {
+        return null;
+    }
 }
-
-
 
 
 
@@ -192,6 +198,58 @@ private function formatearFecha(string $fecha): string
             
                 
                 //return $datos;
-        dd($text);
+      //  dd($datos);
             }
+
+            
+            private function procesarGastosMedicosVital(string $text): array
+            {
+                // Normalizar el texto
+                $text = preg_replace('/\s+/', ' ', $text);
+                $text = trim($text);
+            
+                $datos = [];
+            
+                // Extraer número de póliza
+                if (preg_match('/Suma Asegurada:\s*(.+)/i', $text, $matches)) {
+                    $datos['numero_de_poliza'] = trim($matches[1]);
+                }
+            
+                // Extraer RFC
+                $datos['rfc'] = $this->extraerDato($text, '/R\.F\.C\.:\s*([A-Z0-9]{12,13})/i');
+            
+                // Extraer nombre del contratante (ajustado para evitar capturar "Dirección")
+                $datos['nombre_cliente'] = $this->extraerDato($text, '/Nombre del Contratante:\s*([A-Za-zÁÉÍÓÚáéíóúñÑ\s\.\-]+)\s+\d{2}\/[A-Z]{3}\/\d{4}/i');
+            
+                // Extraer vigencia (desde y hasta)
+                $datos['vigencia_inicio'] = $this->formatearFecha($this->extraerDato($text, '/Desde:\s*Las\s+\d{2}:\d{2}\s+hrs\.\s+del\s+día\s+(\d{2}\/[A-Z]{3}\/\d{4})/i'));
+                $datos['vigencia_fin'] = $this->formatearFecha($this->extraerDato($text, '/Hasta:\s*Las\s+\d{2}:\d{2}\s+hrs\.\s+del\s+día\s+(\d{2}\/[A-Z]{3}\/\d{4})/i'));
+            
+                // Extraer agente (número y nombre)
+                $datos['numero_agente'] = $this->extraerDato($text, '/Agente:\s*(\d+)/i');
+                $datos['nombre_agente'] = $this->extraerDato($text, '/Agente:\s*\d+\s+([A-Za-zÁÉÍÓÚáéíóúñÑ\s\.\-]+)/i');
+            
+                // Extraer forma de pago
+                $datos['forma_pago'] = $this->extraerDato($text, '/(ANUAL\s+EFECTIVO|Pago\s+Fraccionado|Mensualidad)/i') ?? 'ANUAL EFECTIVO';
+            
+                // Extraer total a pagar
+                $datos['total_pagar'] = $this->extraerMonto($text, '/Total\s+([\d,]+\.\d{2})/i');
+            
+                // Extraer suma asegurada
+                $datos['suma_asegurada'] = $this->extraerMonto($text, '/Suma Asegurada:\s*([\d,]+\.\d{2})/i');
+            
+                // Extraer deducible
+                $datos['deducible'] = $this->extraerDato($text, '/Deducible contratado:\s*([\d%]+)/i');
+            
+                //return $datos;
+
+                dd($datos);
+            }
+
+    private function procesarCamionesHasta3_5(String $text):array{
+        $datos =[];
+
+
+        $dd($text);
+    }
 }

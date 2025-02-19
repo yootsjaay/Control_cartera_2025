@@ -26,9 +26,7 @@
 
         <div class="card-body">
             <div class="row mb-3">
-                <div class="col-md-3">
-                    <input type="text" id="searchInput" class="form-control" placeholder="Buscar póliza...">
-                </div>
+               
                 <div class="col-md-3">
                     <select id="companiaFilter" class="form-control">
                         <option value="">Todas las compañías</option>
@@ -91,7 +89,7 @@
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        <img src="{{ asset('img/companias/' . $poliza->compania->logo) }}" 
+                                        <img src="{{ asset('image/companias/' . $poliza->compania->logo) }}" 
                                              alt="{{ $poliza->compania->nombre }}" 
                                              class="img-circle img-size-32 mr-2">
                                         {{ $poliza->compania->nombre ?? 'N/A' }}

@@ -69,8 +69,8 @@ class PolizasController extends Controller
 
             foreach ($request->file('pdf') as $archivo) {
                 $poliza = $this->polizaService->crearPoliza($request, $archivo); // Usar el servicio
-                $polizasCreadas[] = $poliza; // Agregar la póliza creada al array
-            }
+                $polizasCreadas[] = $poliza; // la póliza creada al array
+            } 
 
             DB::commit();
 
