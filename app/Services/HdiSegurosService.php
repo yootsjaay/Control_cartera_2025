@@ -124,8 +124,8 @@ class HdiSegurosService implements SeguroServiceInterface
     } else {
         $datos['total_pagar'] = 'No encontrado';
     }
-    return $datos;
-    //dd($datos);
+    //return $datos;
+    dd($datos);
 }
 
     private function extraerDato(string $text, string $pattern, $default = null)
@@ -160,91 +160,86 @@ private function formatearFecha(string $fecha): ?string
             
                 // Extrae Numero de poliza
                 if (preg_match('/Suma Asegurada:\s*(.+)/i', $text, $matches)) {
-                    $datos['numero_de_poliza'] = trim($matches[1]);
+                    $datos['numero_poliza'] = trim($matches[1]);
                 }
             
-            
-                // Extraer Vigencia completa (Desde y Hasta)
-                if (preg_match('/Desde:\s*(.+)\nHasta:\s*(.+)/i', $text, $matches)) {
-                    $datos['vigencia'] = [
-                        'desde' => trim($matches[1]),
-                        'hasta' => trim($matches[2]),
-                    ];
+                //extraer Fecha
+                if (preg_match('/Las\s+(\d{2}:\d{2})\s+hrs\.\s+del\s+día\s+(\d{1,2}\/\w{3}\/\d{4}).*?Las\s+(\d{2}:\d{2})\s+hrs\.\s+del\s+día\s+(\d{1,2}\/\w{3}\/\d{4})/is', $text, $matches)) {
+                    
+                    $datos['vigencia_inicio'] = trim($matches[2]);
+                    $datos['vigencia_fin'] = trim($matches[4]);
                 }
-
                 
                 // Extraer Dirección
                 if (preg_match('/Dirección:\s*(.+)/i', $text, $matches)) {
-                    $datos['contratante'] = trim($matches[1]);
+                    $datos['nombre_cliente'] = trim($matches[1]);
+                }
+            
+                // Extraer R.F.C.
+                if (preg_match('/R\.F\.C\.\:\s*([A-Z0-9]+)/i', $text, $matches)) {
+                    $datos['rfc'] = $matches[1];
+
+                }
+
+                        // Extraer la forma de pago
+            $datos['forma_pago'] = $this->extraerDato($text, '/(ANUAL\s+EFECTIVO|Pago\s+Fraccionado|Mensualidad)/i') ?? 'ANUAL EFECTIVO';
+
+                            // Extraer el monto de Pagos Subsecuentes
+                if (preg_match('/([\d,]+\.\d{2})\s*Pagos Subsecuentes/i', $text, $matches)) {
+                    $datos['total_a_pagar'] = str_replace(',', '', $matches[1]); // Convertir a número sin comas
+                }
+                // Agente con valores por defecto
+            // Extraer número de agente (antes de "Agente:")
+            $datos['numero_agente'] = $this->extraerDato($text, '/Oficina:.*\t(\d{6})Agente:/i') ?: '000000'; // "057235"
+            
+            // Extraer nombre de agente (después de "Agente:")
+            $datos['nombre_agente'] = $this->extraerDato($text, '/Agente:\t([A-Za-zÁÉÍÓÚáéíóúñÑ\s]+)/i') ?: 'AGENTE NO ESPECIFICADO'; // "MARICRUZ CASTILLEJOS REYES"   
+                //return $datos;
+            dd($datos);
+                    }
+
+            
+            private function procesarGastosMedicosVital(String $text): array
+                {
+                    $datos = [];
+               
+                // Extraer número de póliza (capturar dígitos antes de "ZONA")
+                $datos['numero_poliza'] = $this->extraerDato($text, '/(\d{6})\s+ZONA/i');
+
+                        
+            
+                   // Extraer Vigencia completa (Desde y Hasta)
+                   if (preg_match('/Las\s+(\d{2}:\d{2})\s+hrs\.\s+del\s+día\s+(\d{1,2}\/\w{3}\/\d{4}).*?Las\s+(\d{2}:\d{2})\s+hrs\.\s+del\s+día\s+(\d{1,2}\/\w{3}\/\d{4})/is', $text, $matches)) {
+                 
+                    $datos['vigencia_inicio'] = trim($matches[2]);
+                    $datos['vigencia_fin'] = trim($matches[4]);
+                }
+                  // Extraer Dirección
+                if (preg_match('/Dirección:\s*(.+)/i', $text, $matches)) {
+                    $datos['nombre_cliente'] = trim($matches[1]);
                 }
             
                 // Extraer R.F.C.
                 if (preg_match('/R\.F\.C\.\:\s*([A-Z0-9]+)/i', $text, $matches)) {
                     $datos['rfc'] = $matches[1];
                 }
-                    // Extraer el monto de Pagos Subsecuentes
-        if (preg_match('/([\d,]+\.\d{2})\s*Pagos Subsecuentes/i', $text, $matches)) {
-            $datos['pagos_subsecuentes'] = str_replace(',', '', $matches[1]); // Convertir a número sin comas
-        }
-            
-        
-        // Extraer Pagos Subsecuentes (monto relacionado con fechas específicas)
-        if (preg_match('/(\d{2}\/[A-Z]{3}\/\d{4})\s+(\d{2}\/[A-Z]{3}\/\d{4})\s+([\d,]+\.\d{2})/i', $text, $matches)) {
-            $datos['fecha_inicio_pago_subsecuente'] = $matches[1]; // Primera fecha (inicio)
-            $datos['fecha_fin_pago_subsecuente'] = $matches[2];   // Segunda fecha (fin)
-            $datos['monto_pago_subsecuente'] = str_replace(',', '', $matches[3]); // Monto sin comas
-        }
 
-            
+                // Extracción del Total y N° Póliza
+                preg_match('/Fecha de Efectividad:\s*(\d{1,3}(?:,\d{3})*\.\d{2})/i', $text, $matches);
+                $datos['total_pagar'] = isset($matches[1]) ? (float) str_replace(',', '', $matches[1]) : null;
                 
-                //return $datos;
-      //  dd($datos);
-            }
-
-            
-            private function procesarGastosMedicosVital(string $text): array
-            {
-                // Normalizar el texto
-                $text = preg_replace('/\s+/', ' ', $text);
-                $text = trim($text);
-            
-                $datos = [];
-            
-                // Extraer número de póliza
-                if (preg_match('/Suma Asegurada:\s*(.+)/i', $text, $matches)) {
-                    $datos['numero_de_poliza'] = trim($matches[1]);
-                }
-            
-                // Extraer RFC
-                $datos['rfc'] = $this->extraerDato($text, '/R\.F\.C\.:\s*([A-Z0-9]{12,13})/i');
-            
-                // Extraer nombre del contratante (ajustado para evitar capturar "Dirección")
-                $datos['nombre_cliente'] = $this->extraerDato($text, '/Nombre del Contratante:\s*([A-Za-zÁÉÍÓÚáéíóúñÑ\s\.\-]+)\s+\d{2}\/[A-Z]{3}\/\d{4}/i');
-            
-                // Extraer vigencia (desde y hasta)
-                $datos['vigencia_inicio'] = $this->formatearFecha($this->extraerDato($text, '/Desde:\s*Las\s+\d{2}:\d{2}\s+hrs\.\s+del\s+día\s+(\d{2}\/[A-Z]{3}\/\d{4})/i'));
-                $datos['vigencia_fin'] = $this->formatearFecha($this->extraerDato($text, '/Hasta:\s*Las\s+\d{2}:\d{2}\s+hrs\.\s+del\s+día\s+(\d{2}\/[A-Z]{3}\/\d{4})/i'));
-            
-                // Extraer agente (número y nombre)
-                $datos['numero_agente'] = $this->extraerDato($text, '/Agente:\s*(\d+)/i');
-                $datos['nombre_agente'] = $this->extraerDato($text, '/Agente:\s*\d+\s+([A-Za-zÁÉÍÓÚáéíóúñÑ\s\.\-]+)/i');
-            
-                // Extraer forma de pago
+               
+                  // Extraer la forma de pago
                 $datos['forma_pago'] = $this->extraerDato($text, '/(ANUAL\s+EFECTIVO|Pago\s+Fraccionado|Mensualidad)/i') ?? 'ANUAL EFECTIVO';
-            
-                // Extraer total a pagar
-                $datos['total_pagar'] = $this->extraerMonto($text, '/Total\s+([\d,]+\.\d{2})/i');
-            
-                // Extraer suma asegurada
-                $datos['suma_asegurada'] = $this->extraerMonto($text, '/Suma Asegurada:\s*([\d,]+\.\d{2})/i');
-            
-                // Extraer deducible
-                $datos['deducible'] = $this->extraerDato($text, '/Deducible contratado:\s*([\d%]+)/i');
-            
-                //return $datos;
 
-                dd($datos);
-            }
+                            
+         // Extraer número de agente (antes de "Agente:")
+    $datos['numero_agente'] = $this->extraerDato($text, '/Oficina:.*\t(\d{6})Agente:/i') ?: '000000'; // "057235"
+    
+    // Extraer nombre de agente (después de "Agente:")
+    $datos['nombre_agente'] = $this->extraerDato($text, '/Agente:\t([A-Za-zÁÉÍÓÚáéíóúñÑ\s]+)/i') ?: 'AGENTE NO ESPECIFICADO'; // "MARICRUZ CASTILLEJOS REYES"   
+                   dd($datos);
+                }
 
     private function procesarCamionesHasta3_5(String $text):array{
         $datos =[];
