@@ -89,9 +89,6 @@
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center">
-                                        <img src="{{ asset('image/companias/' . $poliza->compania->logo) }}" 
-                                             alt="{{ $poliza->compania->nombre }}" 
-                                             class="img-circle img-size-32 mr-2">
                                         {{ $poliza->compania->nombre ?? 'N/A' }}
                                     </div>
                                 </td>

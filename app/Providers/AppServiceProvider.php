@@ -20,6 +20,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+
+        if(config('app.env') ==='local'){
+            $this->app['request']->server->set('HTTPS', true);
+        }
         // Bind del parser PDF
         $this->app->singleton(Parser::class, function ($app) {
             return new Parser(); // Puedes agregar opciones de configuración aquí si es necesario

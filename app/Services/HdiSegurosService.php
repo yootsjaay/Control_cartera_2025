@@ -8,6 +8,7 @@ use App\Models\Seguro;
 use App\Models\Ramo;
 use InvalidArgumentException;
 use Exception;
+use DateTime;
 
 class HdiSegurosService implements SeguroServiceInterface
 {
@@ -77,56 +78,63 @@ class HdiSegurosService implements SeguroServiceInterface
     }
 
  
-
     private function procesarAutos(string $text): array
-{
-    $datos = [];
+    {
+        $datos = [];
 
-    // Normalizar texto: eliminar múltiples espacios y saltos de línea
-    $text = preg_replace('/\s+/', ' ', $text);
-    $text = trim($text);
+        // Nombre del cliente
+        if (preg_match('/(?:\n|^)([A-ZÁÉÍÓÚÑa-záéíóúñ\s]+)\nRFC:/i', $text, $matches)) {
+            $datos['nombre_cliente'] = trim($matches[1]) ?: 'SIN NOMBRE';
+        } else {
+            $datos['nombre_cliente'] = 'SIN NOMBRE'; // Más corto que "NO ESPECIFICADO"
+        }
 
-    // Nombre del cliente (mejorado)
-    if (preg_match('/(.*?)\nRFC:/', $text, $matches)) { // Busca el nombre antes de "RFC:"
-        $datos['nombre_cliente'] = trim($matches[1]);
+        // RFC
+        $datos['rfc'] = $this->extraerDato($text, '/RFC:\s*([A-Z0-9]{12,13})/i') ?? 'N/A'; // Cambiado a "N/A"
+
+        // Número de póliza
+        $datos['numero_poliza'] = $this->extraerDato($text, '/Póliza:\s*([\d\-]+)/i') ?? 'N/A';
+
+        
+        // Vigencia
+        if (preg_match('/Vigencia:\s*Desde las \d{2}:\d{2} hrs\. del\s*(\d{2}\/\d{2}\/\d{4})\s*Hasta las \d{2}:\d{2} hrs\. del\s*(\d{2}\/\d{2}\/\d{4})/i', $text, $matches)) {
+            $inicio = DateTime::createFromFormat('d/m/Y', $matches[1]);
+            $fin = DateTime::createFromFormat('d/m/Y', $matches[2]);
+            $datos['vigencia_inicio'] = $inicio ? $inicio->format('Y-m-d') : '0000-00-00';
+            $datos['vigencia_fin'] = $fin ? $fin->format('Y-m-d') : '0000-00-00';
+        } else {
+            $datos['vigencia_inicio'] = '0000-00-00';
+            $datos['vigencia_fin'] = '0000-00-00';
+        }
+
+        // Forma de pago
+        if (preg_match('/(ANUAL|SEMESTRAL|TRIMESTRAL|MENSUAL)\s*(EFECTIVO|CHEQUE|TARJETA)?/i', $text, $matches)) {
+            $datos['forma_pago'] = trim($matches[0]);
+        } else {
+            $datos['forma_pago'] = 'N/A';
+        }
+
+        // Agente
+        if (preg_match('/Agente:\s*(\d+)\s+([A-ZÁÉÍÓÚÑa-záéíóúñ\s\.\-]+)(?=\n|$)/i', $text, $matches)) {
+            $datos['numero_agente'] = trim($matches[1]);
+            $datos['nombre_agente'] = trim($matches[2]);
+        } else {
+            $datos['numero_agente'] = '000000';
+            $datos['nombre_agente'] = 'N/A';
+        }
+
+        // Total a pagar
+        if (preg_match('/([0-9,]+\.\d{2})\s*Total a Pagar/', $text, $matches)) {
+            $datos['total_pagar'] = (float) str_replace(',', '', trim($matches[1]));
+        } else {
+            preg_match_all('/[\d,]+\.\d{2}/', $text, $matches);
+            $ultimo_monto = end($matches[0]);
+            $datos['total_pagar'] = $ultimo_monto ? (float) str_replace(',', '', $ultimo_monto) : 0.00;
+        }
+
+        return $datos;
+       // dd($datos);
     }
-
-    // RFC
-    $datos['rfc'] = $this->extraerDato($text, '/RFC:\s*([A-Z0-9]{12,13})/i');
-
-    // Número de póliza
-    $datos['numero_poliza'] = $this->extraerDato($text, '/Póliza:\s*([\d\-]+)/i');
-
-    // Vigencia (mejorado)
-    if (preg_match('/Vigencia:\s*Desde las \d{2}:\d{2} hrs\. del\s*(\d{2}\/\d{2}\/\d{4})\s*Hasta las \d{2}:\d{2} hrs\. del\s*(\d{2}\/\d{2}\/\d{4})/', $text, $matches)) {
-        $datos['vigencia_inicio'] = $this->formatearFecha($matches[1]);
-        $datos['vigencia_fin'] = $this->formatearFecha($matches[2]);
-    }
-
-    // Forma de pago (mejorado)
-    if (preg_match('/(ANUAL|SEMESTRAL|TRIMESTRAL|MENSUAL)\s*(EFECTIVO|CHEQUE|TARJETA)?/i', $text, $matches)) {
-        $datos['forma_pago'] = trim($matches[0]); // Toma la coincidencia completa
-    } else {
-        $datos['forma_pago'] = 'NO ESPECIFICADA'; // Valor por defecto si no se encuentra
-    }
-
-    // Agente (mejorado)
-    if (preg_match('/Agente:\s*(\d+)\s+([A-ZÁÉÍÓÚÑa-záéíóúñ\s\.\-]+)/i', $text, $matches)) {
-        $datos['numero_agente'] = trim($matches[1]);
-        $datos['nombre_agente'] = trim($matches[2]);
-    }
-
-    
-   
-      // Extraer el total a pagar
-      if (preg_match('/([0-9,]+\.\d{2})\s*Total a Pagar/', $text, $matches)) {
-        $datos['total_pagar'] = trim($matches[1]);
-    } else {
-        $datos['total_pagar'] = 'No encontrado';
-    }
-    //return $datos;
-    dd($datos);
-}
 
     private function extraerDato(string $text, string $pattern, $default = null)
 {
@@ -158,17 +166,33 @@ private function formatearFecha(string $fecha): ?string
      {
                 $datos = [];
             
+                // Mapa de meses en español a números
+    $meses = [
+        'ENE' => '01', 'FEB' => '02', 'MAR' => '03', 'ABR' => '04',
+        'MAY' => '05', 'JUN' => '06', 'JUL' => '07', 'AGO' => '08',
+        'SEP' => '09', 'OCT' => '10', 'NOV' => '11', 'DIC' => '12'
+    ];
                 // Extrae Numero de poliza
                 if (preg_match('/Suma Asegurada:\s*(.+)/i', $text, $matches)) {
                     $datos['numero_poliza'] = trim($matches[1]);
                 }
             
-                //extraer Fecha
-                if (preg_match('/Las\s+(\d{2}:\d{2})\s+hrs\.\s+del\s+día\s+(\d{1,2}\/\w{3}\/\d{4}).*?Las\s+(\d{2}:\d{2})\s+hrs\.\s+del\s+día\s+(\d{1,2}\/\w{3}\/\d{4})/is', $text, $matches)) {
-                    
-                    $datos['vigencia_inicio'] = trim($matches[2]);
-                    $datos['vigencia_fin'] = trim($matches[4]);
-                }
+            // Extraer Fecha y convertir al formato Y-m-d
+    if (preg_match('/Las\s+(\d{2}:\d{2})\s+hrs\.\s+del\s+día\s+(\d{1,2}\/\w{3}\/\d{4}).*?Las\s+(\d{2}:\d{2})\s+hrs\.\s+del\s+día\s+(\d{1,2}\/\w{3}\/\d{4})/is', $text, $matches)) {
+        // Procesar vigencia_inicio (ej. 22/ENE/2024)
+        $fecha_inicio = $matches[2]; // "22/ENE/2024"
+        [$dia, $mes, $anio] = explode('/', $fecha_inicio);
+        $mes_num = $meses[strtoupper($mes)] ?? '01'; // Fallback a 01 si el mes no coincide
+        $fecha_inicio_formateada = "$anio-$mes_num-$dia"; // "2024-01-22"
+        $datos['vigencia_inicio'] = $fecha_inicio_formateada;
+
+        // Procesar vigencia_fin (ej. 22/ENE/2025)
+        $fecha_fin = $matches[4]; // "22/ENE/2025"
+        [$dia, $mes, $anio] = explode('/', $fecha_fin);
+        $mes_num = $meses[strtoupper($mes)] ?? '01';
+        $fecha_fin_formateada = "$anio-$mes_num-$dia"; // "2025-01-22"
+        $datos['vigencia_fin'] = $fecha_fin_formateada;
+    }
                 
                 // Extraer Dirección
                 if (preg_match('/Dirección:\s*(.+)/i', $text, $matches)) {
@@ -184,19 +208,20 @@ private function formatearFecha(string $fecha): ?string
                         // Extraer la forma de pago
             $datos['forma_pago'] = $this->extraerDato($text, '/(ANUAL\s+EFECTIVO|Pago\s+Fraccionado|Mensualidad)/i') ?? 'ANUAL EFECTIVO';
 
-                            // Extraer el monto de Pagos Subsecuentes
-                if (preg_match('/([\d,]+\.\d{2})\s*Pagos Subsecuentes/i', $text, $matches)) {
-                    $datos['total_a_pagar'] = str_replace(',', '', $matches[1]); // Convertir a número sin comas
-                }
-                // Agente con valores por defecto
+                
+                        // Extraer el último monto con formato xx,xxx.xx
+            preg_match_all('/[\d,]+\.\d{2}/', $text, $matches);
+            $ultimo_monto = end($matches[0]); // Tomar el último valor encontrado
+            $datos['total_pagar'] = (float) str_replace(',', '', $ultimo_monto);
+
             // Extraer número de agente (antes de "Agente:")
             $datos['numero_agente'] = $this->extraerDato($text, '/Oficina:.*\t(\d{6})Agente:/i') ?: '000000'; // "057235"
             
             // Extraer nombre de agente (después de "Agente:")
             $datos['nombre_agente'] = $this->extraerDato($text, '/Agente:\t([A-Za-zÁÉÍÓÚáéíóúñÑ\s]+)/i') ?: 'AGENTE NO ESPECIFICADO'; // "MARICRUZ CASTILLEJOS REYES"   
-                //return $datos;
-            dd($datos);
-                    }
+               return $datos;
+//dd($datos);                 
+   }
 
             
             private function procesarGastosMedicosVital(String $text): array
@@ -211,8 +236,19 @@ private function formatearFecha(string $fecha): ?string
                    // Extraer Vigencia completa (Desde y Hasta)
                    if (preg_match('/Las\s+(\d{2}:\d{2})\s+hrs\.\s+del\s+día\s+(\d{1,2}\/\w{3}\/\d{4}).*?Las\s+(\d{2}:\d{2})\s+hrs\.\s+del\s+día\s+(\d{1,2}\/\w{3}\/\d{4})/is', $text, $matches)) {
                  
-                    $datos['vigencia_inicio'] = trim($matches[2]);
-                    $datos['vigencia_fin'] = trim($matches[4]);
+                    // Procesar vigencia_inicio (ej. 22/ENE/2024)
+        $fecha_inicio = $matches[2]; // "22/ENE/2024"
+        [$dia, $mes, $anio] = explode('/', $fecha_inicio);
+        $mes_num = $meses[strtoupper($mes)] ?? '01'; // Fallback a 01 si el mes no coincide
+        $fecha_inicio_formateada = "$anio-$mes_num-$dia"; // "2024-01-22"
+        $datos['vigencia_inicio'] = $fecha_inicio_formateada;
+
+        // Procesar vigencia_fin (ej. 22/ENE/2025)
+        $fecha_fin = $matches[4]; // "22/ENE/2025"
+        [$dia, $mes, $anio] = explode('/', $fecha_fin);
+        $mes_num = $meses[strtoupper($mes)] ?? '01';
+        $fecha_fin_formateada = "$anio-$mes_num-$dia"; // "2025-01-22"
+        $datos['vigencia_fin'] = $fecha_fin_formateada;
                 }
                   // Extraer Dirección
                 if (preg_match('/Dirección:\s*(.+)/i', $text, $matches)) {
@@ -238,12 +274,12 @@ private function formatearFecha(string $fecha): ?string
     
     // Extraer nombre de agente (después de "Agente:")
     $datos['nombre_agente'] = $this->extraerDato($text, '/Agente:\t([A-Za-zÁÉÍÓÚáéíóúñÑ\s]+)/i') ?: 'AGENTE NO ESPECIFICADO'; // "MARICRUZ CASTILLEJOS REYES"   
-                   dd($datos);
+                  // dd($datos);
+                  return $datos;
                 }
 
     private function procesarCamionesHasta3_5(String $text):array{
         $datos =[];
-
 
         $dd($text);
     }
