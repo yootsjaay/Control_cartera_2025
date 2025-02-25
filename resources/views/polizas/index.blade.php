@@ -45,9 +45,9 @@
                 <div class="col-md-3">
                     <select id="tipoFilter" class="form-control">
                         <option value="">Todos los tipos</option>
-                        <option value="automovil">Automóvil</option>
-                        <option value="vida">Vida</option>
-                        <option value="hogar">Hogar</option>
+                        @foreach($tipos as $tipo)
+                            <option value="{{ $tipo }}">{{ $tipo }}</option>
+                        @endforeach
                     </select>
                 </div>
             </div>
@@ -89,6 +89,7 @@
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center">
+                                      
                                         {{ $poliza->compania->nombre ?? 'N/A' }}
                                     </div>
                                 </td>
@@ -245,9 +246,11 @@ $(document).ready(function() {
         table.column(6).search(value === 'vigente' ? 'Vigente' : 'Vencida').draw();
     });
 
-    $('#tipoFilter').on('change', function() {
-        table.column(0).search(this.value).draw();
-    });
+  // Filtro por tipo (basado en tipo_seguro)
+  $('#tipoFilter').on('change', function() {
+                var value = this.value;
+                table.column(0).search(value ? value : '', true, false).draw(); // Busca en la columna Póliza
+            });
 
     // Confirmación de eliminación
     $('#polizasTable').on('click', '.delete-btn', function(e) {
