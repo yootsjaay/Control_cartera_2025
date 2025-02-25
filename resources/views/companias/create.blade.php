@@ -11,7 +11,7 @@
         <li class="breadcrumb-item active">Crear</li>
     </ol>
 
-    <div class="card mb-4" style="max-width: 700px; margin: 0 auto;">
+    <div class="card mb-4 mx-auto" style="max-width: 700px;">
         <div class="card-header">
             <i class="fas fa-plus me-1"></i>
             Crear Compañía
@@ -20,34 +20,20 @@
             <form action="{{ route('companias.store') }}" method="POST">
                 @csrf
 
-                <!-- Campo Nombre -->
-                <div class="form-group">
-                    <label for="nombre">Nombre de la Compañía</label>
+                <div class="mb-3">
+                    <label for="nombre">Nombre</label>
                     <input type="text" name="nombre" id="nombre" class="form-control" value="{{ old('nombre') }}" required>
                     @error('nombre')
                         <span class="text-danger">{{ $message }}</span>
                     @enderror
                 </div>
 
-                <!-- Campo Slug -->
-                <div class="form-group mt-3">
-                    <label for="slug">Slug</label>
-                    <input type="text" name="slug" id="slug" class="form-control" value="{{ old('slug') }}" required>
-                    @error('slug')
-                        <span class="text-danger">{{ $message }}</span>
-                    @enderror
-                    <small class="form-text text-muted">El slug es un identificador único para la compañía.</small>
-                </div>
-
-                <!-- Campo Clase -->
-                <div class="form-group mt-3">
-                    <label for="clase">Clase</label>
+                <div class="mb-3">
+                    <label for="clase">Pertenece a</label>
                     <select name="clase" id="clase" class="form-control" required>
-                        <option value="" disabled selected>Seleccione una clase</option>
-                        @foreach ($clases as $nombre => $clase)
-                            <option value="{{ $clase }}" {{ old('clase') == $clase ? 'selected' : '' }}>
-                                {{ $nombre }}
-                            </option>
+                        <option value="" disabled selected>Elige una compañía</option>
+                        @foreach ($clases as $slug => $servicio)
+                            <option value="{{ $slug }}">{{ ucfirst(str_replace('-seguros', '', $slug)) }}</option>
                         @endforeach
                     </select>
                     @error('clase')
@@ -55,9 +41,9 @@
                     @enderror
                 </div>
 
-                <!-- Botón -->
-                <div class="col-12 text-center">
+                <div class="text-center">
                     <button type="submit" class="btn btn-primary mt-3">Crear Compañía</button>
+                    <a href="{{ route('companias.index') }}" class="btn btn-secondary mt-3">Cancelar</a>
                 </div>
             </form>
         </div>
@@ -66,12 +52,5 @@
 @endsection
 
 @section('css')
-<link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-@endsection
-
-@section('js')
-<script>
-    console.log('Página lista.');
-</script>
 @endsection

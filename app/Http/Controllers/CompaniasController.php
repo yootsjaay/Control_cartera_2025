@@ -8,6 +8,7 @@ use App\Services\QualitasSeguroService;
 use App\Services\HdiSegurosService;
 use App\Services\GmxSeguroService;
 use App\Services\BanorteSeguroService;
+use Illuminate\Support\Str;
 
 
 class CompaniasController extends Controller
@@ -33,7 +34,10 @@ class CompaniasController extends Controller
      */
     public function create()
     {
-        return view('companias.create'); // Vista del formulario de creación
+        return view('companias.create',[
+           
+            'clases' => config('aseguradoras.servicios') // Accede a la configuración
+        ]); // Vista del formulario de creación
     }
 
     /**
@@ -44,9 +48,21 @@ class CompaniasController extends Controller
         // Validar los datos enviados
         $validatedData = $request->validate([
             'nombre' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:companias,slug',
             'clase' => 'required|string|max:255',
         ]);
+
+        // Generar el slug automáticamente basado en el nombre
+        $slug = Str::slug($validatedData['nombre']); // Convierte "Mi Compañía" a "mi-compania"
+        
+        // Verificar unicidad del slug y ajustarlo si es necesario
+        $originalSlug = $slug;
+        $counter = 1;
+        while (Compania::where('slug', $slug)->exists()) {
+            $slug = $originalSlug . '-' . $counter++;
+        }
+
+        // Agregar el slug a los datos validados
+        $validatedData['slug'] = $slug;
 
         // Crear y guardar la compañía
         Compania::create($validatedData);
@@ -68,7 +84,10 @@ class CompaniasController extends Controller
      */
     public function edit(Compania $compania)
     {
-        return view('companias.edit', compact('compania')); // Vista del formulario de edición
+        return view('companias.edit', [
+            'compania' => $compania, // Pasamos la instancia de Compania
+            'clases' => config('aseguradoras.servicios') // Pasamos las clases
+        ]);
     }
 
     /**
@@ -83,7 +102,7 @@ class CompaniasController extends Controller
             'clase' => 'required|string|max:255',
         ]);
 
-        // Actualizar la compañía
+        // Actualizar la compañía existente
         $compania->update($validatedData);
 
         // Redirigir al listado con un mensaje de éxito

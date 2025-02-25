@@ -27,7 +27,7 @@ class HdiSegurosService implements SeguroServiceInterface
 
     public function extractToData(UploadedFile $archivo, Seguro $seguro, Ramo $ramo): array
     {
-        if ($seguro->compania->slug !== 'hdi_seguros') {
+        if ($seguro->compania->slug !== 'hdi-seguros') {
             throw new InvalidArgumentException("El seguro seleccionado no pertenece a HDI.");
         }
 
