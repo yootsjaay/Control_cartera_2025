@@ -5,6 +5,8 @@ use App\Models\Seguro;
 use App\Models\Compania;
 use App\Models\Ramo;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
 
 class SegurosRamoController extends Controller
 {
@@ -98,6 +100,6 @@ class SegurosRamoController extends Controller
     {
         $seguro->ramos()->delete();  // Primero eliminamos los ramos relacionados
         $seguro->delete();  // Luego eliminamos el seguro
-        return redirect()->route('seguros.index')->with('success', 'Seguro y sus ramos eliminados con éxito.');
+        return redirect()->route('seguros.index')->with('update', 'Seguro y sus ramos eliminados con éxito.');
     }
 }

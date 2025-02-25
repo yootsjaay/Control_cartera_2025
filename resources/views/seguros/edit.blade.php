@@ -124,29 +124,38 @@
     </div>
 </div>
 @endsection
-
-@section('js')
 @section('css')
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 @endsection
 
 @section('js')
+<<<<<<< HEAD
+@section('css')
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+@endsection
+
+@section('js')
+=======
+>>>>>>> 3dcadea41ae7fbddd2d26f4c74385a7e9c3c1178
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
 $(document).ready(function() {
-    // Inicializar Select2
+    // Inicializar Select2 con configuración mejorada
     $('#compania_id').select2({
         placeholder: "Seleccione una compañía",
         allowClear: true,
-        width: '100%'
+        width: '100%',
+        dropdownParent: $('#seguroForm')
     });
 
-    // Manejar dinámicamente los ramos
-    let ramoIndex = {{ count($oldRamos) }};
+    // Manejo dinámico de ramos con validación
+    let ramoIndex = {{ old('ramos') ? count(old('ramos')) : 1 }};
+    const ramosContainer = $('#ramos-container');
     
-    $('#ramos-container').on('click', '.add-ramo', function() {
+    // Agregar nuevo ramo
+    ramosContainer.on('click', '.add-ramo', function() {
         const newGroup = $('<div class="ramo-group input-group mb-2">')
             .append(
                 $('<input>').attr({
@@ -157,17 +166,20 @@ $(document).ready(function() {
                     required: true
                 }),
                 $('<div class="input-group-append">').append(
-                    $('<button type="button" class="btn btn-danger remove-ramo">')
-                        .html('<i class="fas fa-times"></i>')
+                    $('<button>').attr({
+                        type: 'button',
+                        class: 'btn btn-danger remove-ramo'
+                    }).html('<i class="fas fa-times"></i>')
                 )
             );
         
-        $('#ramos-container').append(newGroup);
+        ramosContainer.append(newGroup);
         ramoIndex++;
         actualizarBotonesRemove();
     });
 
-    $('#ramos-container').on('click', '.remove-ramo', function() {
+    // Eliminar ramo
+    ramosContainer.on('click', '.remove-ramo', function() {
         if($('.ramo-group').length > 1) {
             $(this).closest('.ramo-group').remove();
             reindexRamos();
@@ -175,6 +187,7 @@ $(document).ready(function() {
         }
     });
 
+    // Reindexar ramos
     function reindexRamos() {
         ramoIndex = 0;
         $('.ramo-group').each(function(index) {
@@ -183,6 +196,7 @@ $(document).ready(function() {
         });
     }
 
+    // Actualizar visibilidad de botones de eliminar
     function actualizarBotonesRemove() {
         $('.ramo-group').each(function(index) {
             const removeBtn = $(this).find('.remove-ramo');

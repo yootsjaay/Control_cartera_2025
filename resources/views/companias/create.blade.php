@@ -6,6 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 @stop
 
+<<<<<<< HEAD
 @section('content')
 <div class="container-fluid">
     <div class="row mb-4">
@@ -20,6 +21,9 @@
     </div>
 
     <div class="card card-outline card-primary" style="max-width: 700px; margin: 0 auto;">
+=======
+    <div class="card mb-4 mx-auto" style="max-width: 700px;">
+>>>>>>> 3dcadea41ae7fbddd2d26f4c74385a7e9c3c1178
         <div class="card-header">
             <h3 class="card-title"><i class="fas fa-plus-circle mr-2"></i> Nueva Compañía</h3>
         </div>
@@ -27,6 +31,7 @@
             <form action="{{ route('companias.store') }}" method="POST">
                 @csrf
 
+<<<<<<< HEAD
                 <!-- Campo Nombre -->
                 <div class="form-group mb-3">
                     <label for="nombre">Nombre de la Compañía</label>
@@ -37,11 +42,17 @@
                            value="{{ old('nombre') }}" 
                            placeholder="Ingrese el nombre de la compañía" 
                            required>
+=======
+                <div class="mb-3">
+                    <label for="nombre">Nombre</label>
+                    <input type="text" name="nombre" id="nombre" class="form-control" value="{{ old('nombre') }}" required>
+>>>>>>> 3dcadea41ae7fbddd2d26f4c74385a7e9c3c1178
                     @error('nombre')
                         <span class="invalid-feedback">{{ $message }}</span>
                     @enderror
                 </div>
 
+<<<<<<< HEAD
                 <!-- Campo Clase -->
                 <div class="form-group mb-3">
                     <label for="clase">Compañía a la que pertenece</label>
@@ -54,6 +65,14 @@
                             <option value="{{ $clase }}" {{ old('clase') == $clase ? 'selected' : '' }}>
                                 {{ ucwords(str_replace('_', ' ', $clase)) }} <!-- Mostrar nombre legible -->
                             </option>
+=======
+                <div class="mb-3">
+                    <label for="clase">Pertenece a</label>
+                    <select name="clase" id="clase" class="form-control" required>
+                        <option value="" disabled selected>Elige una compañía</option>
+                        @foreach ($clases as $slug => $servicio)
+                            <option value="{{ $slug }}">{{ ucfirst(str_replace('-seguros', '', $slug)) }}</option>
+>>>>>>> 3dcadea41ae7fbddd2d26f4c74385a7e9c3c1178
                         @endforeach
                     </select>
                     @error('clase')
@@ -62,11 +81,17 @@
                     <small class="form-text text-muted">Seleccione la compañía asociada al servicio.</small>
                 </div>
 
+<<<<<<< HEAD
                 <!-- Botón -->
                 <div class="text-center">
                     <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save mr-2"></i> Crear Compañía
                     </button>
+=======
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary mt-3">Crear Compañía</button>
+                    <a href="{{ route('companias.index') }}" class="btn btn-secondary mt-3">Cancelar</a>
+>>>>>>> 3dcadea41ae7fbddd2d26f4c74385a7e9c3c1178
                 </div>
             </form>
         </div>
@@ -75,6 +100,7 @@
 @endsection
 
 @section('css')
+<<<<<<< HEAD
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" />
     <style>
         .form-group label {
@@ -93,4 +119,7 @@
             console.log('Slug sería: ' + this.value.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
         });
     </script>
+=======
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+>>>>>>> 3dcadea41ae7fbddd2d26f4c74385a7e9c3c1178
 @endsection

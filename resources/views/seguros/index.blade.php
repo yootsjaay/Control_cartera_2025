@@ -149,7 +149,6 @@
 <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
 <script src="https://cdn.datatables.net/responsive/2.5.0/js/dataTables.responsive.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 <script>
 $(document).ready(function() {
     const table = $('#segurosTable').DataTable({
@@ -244,6 +243,42 @@ $(document).ready(function() {
         trigger: 'hover',
         placement: 'top'
     });
+
+    // Notificación de "Seguro creado"
+    @if (session('success'))
+        Swal.fire({
+            title: '¡Éxito!',
+            text: 'Seguro creado correctamente',
+            icon: 'success',
+            confirmButtonText: 'Aceptar',
+            timer: 3000, // Se cierra automáticamente después de 3 segundos
+            timerProgressBar: true
+        });
+    @endif
+     // Notificación de "Seguro Eliminado"
+     @if (session('delete'))
+        Swal.fire({
+            title: '¡Éxito!',
+            text: 'Seguro Eliminado',
+            icon: 'delete',
+            confirmButtonText: 'Aceptar',
+            timer: 3000, // Se cierra automáticamente después de 3 segundos
+            timerProgressBar: true
+        });
+    @endif
+
+     // Notificación de "Seguro Eliminado"
+     @if (session('update'))
+        Swal.fire({
+            title: '¡Éxito!',
+            text: 'Seguro Actualizado',
+            icon: 'update',
+            confirmButtonText: 'Aceptar',
+            timer: 3000, // Se cierra automáticamente después de 3 segundos
+            timerProgressBar: true
+        });
+    @endif
 });
+
 </script>
 @endsection
