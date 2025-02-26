@@ -13,7 +13,6 @@
     </div>
 @endif
 
-<<<<<<< HEAD
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col-12">
@@ -83,62 +82,6 @@
         </div>
     </div>
 </div>
-=======
-<div class="container-fluid px-4">
-    <h1 class="mt-4 text-center">Compañías</h1>
-    <ol class="breadcrumb mb-4">
-        <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Inicio</a></li>
-        <li class="breadcrumb-item active">Compañías</li>
-    </ol>
-    
-    <!-- Botón para abrir el modal -->
-        |<div class="card-tools">
-                <a href="{{ route('companias.create') }}" class="btn btn-sm btn-primary">
-                    <i class="fas fa-plus-circle mr-2"></i>Nueva Compania
-                </a>
-            </div>
-
-    <!-- Tabla de compañías -->
-    <!-- Reemplaza la tabla -->
-<table id="listaCompania" class="table table-striped table-bordered">
-    <thead>
-        <tr>
-            <th>Nombre</th>
-            <th>Slug</th>
-            <th>Fecha de Creación</th>
-            <th>Fecha de Actualización</th>
-            <th>Acciones</th>
-        </tr>
-    </thead>
-    <tbody>
-        @forelse($companias as $compania)
-            <tr>
-                <td>{{ $compania->nombre }}</td>
-                <td>{{ $compania->slug }}</td>
-                <td>{{ $compania->created_at->format('d/m/Y') }}</td>
-                <td>{{ $compania->updated_at->format('d/m/Y') }}</td>
-                <td>
-                    <a href="{{ route('companias.edit', $compania->id) }}" class="btn btn-warning btn-sm">Editar</a>
-                    <form action="{{ route('companias.destroy', $compania->id) }}" method="POST" style="display:inline-block;">
-                        @csrf
-                        @method('DELETE')
-                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('¿Estás seguro de que deseas eliminar esta compañía?')">Eliminar</button>
-                    </form>
-                </td>
-            </tr>
-        @empty
-            <tr>
-                <td colspan="5" class="text-center">No hay compañías registradas.</td>
-            </tr>
-        @endforelse
-    </tbody>
-</table>
-        </div>
-    </div>
-</div>
-
-
->>>>>>> 3dcadea41ae7fbddd2d26f4c74385a7e9c3c1178
 @endsection
 
 @section('css')

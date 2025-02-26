@@ -12,20 +12,7 @@ use Exception;
 
 class BanorteSeguroService implements SeguroServiceInterface
 {
-    /**
-     * Extrae los datos específicos de un archivo PDF para Banorte,
-     * validando que el seguro y el ramo correspondan a esta compañía.
-     *
-     * @param UploadedFile $archivo Archivo PDF subido.
-     * @param Seguro $seguro Datos del seguro seleccionado.
-     * @param Ramo $ramo Datos del ramo seleccionado.
-     * @return array Datos extraídos del PDF.
-     *
-     * @throws InvalidArgumentException Si las validaciones fallan.
-     */
-    /**
-     * Obtiene los seguros disponibles para Banorte.
-     */
+  
     public function getSeguros()
     {
         $compania = Compania::where('slug', $slug)->firstOrFail();
@@ -43,7 +30,7 @@ class BanorteSeguroService implements SeguroServiceInterface
     }
     public function extractToData(UploadedFile $archivo, Seguro $seguro, Ramo $ramo): array
     {
-        if ($seguro->compania->slug !== 'banorte') {
+        if ($seguro->compania->slug !== 'banorte-seguros') {
             throw new InvalidArgumentException("El seguro seleccionado no pertenece a HDI.");
         }
 

@@ -142,8 +142,8 @@ class HdiSegurosService implements SeguroServiceInterface
             $datos['total_pagar'] = $ultimo_monto ? (float) str_replace(',', '', $ultimo_monto) : 0.00;
         }
 
-        return $datos;
-       // dd($datos);
+       // return $datos;
+       dd($datos);
     }
 
     private function extraerDato(string $text, string $pattern, $default = null)
