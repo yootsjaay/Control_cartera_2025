@@ -61,6 +61,8 @@
                             <th>Compañía</th>
                             <th>Vigencia</th>
                             <th>Monto</th>
+                            <th>Seguro</th>
+                            <th>Ramo</th>
                             <th>Documento</th>
                             <th class="text-center">Estado</th>
                             <th class="text-center">Acciones</th>
@@ -104,6 +106,8 @@
                                     <span class="text-dark-75 font-weight-bolder">${{ number_format($poliza->total_a_pagar, 2) }}</span>
                                     <small class="text-muted d-block">{{ $poliza->forma_pago ?? 'N/A' }}</small>
                                 </td>
+                                <td>{{ $poliza->seguro?->nombre }}</td>
+                                <td>{{ $poliza->ramos?->nombre_ramo }}</td>
                                 <td class="text-center">
                                     @if ($poliza->archivo_pdf)
                                         <a href="{{ asset('storage/' . $poliza->archivo_pdf) }}" 

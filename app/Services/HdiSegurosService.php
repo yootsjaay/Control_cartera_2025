@@ -21,6 +21,7 @@ class HdiSegurosService implements SeguroServiceInterface
     const RAMO_MEDICA_VITAL = 'medica-vital';
     const RAMO_PAQUETE_FAMILIAR = 'paquete-familiar-todo-riesgo';
     const RAMO_RESPONSABILIDAD_CIVIL_AGENTES= 'responsabilidad-civil-profesional-agentes';
+    const RAMO_HDI_EMPRESA= 'hdi-en-mi-empresa';
 
     protected $parser; // Inyecta el parser
 
@@ -82,6 +83,8 @@ class HdiSegurosService implements SeguroServiceInterface
                 return $this->procesarHdiPaqueteFamiliarTodoRiesgo($text);
             case self::RAMO_RESPONSABILIDAD_CIVIL_AGENTES:
                 return $this->procesarHdiResponsabilidadCivilProfesionalAgentes($text);
+            case self::RAMO_HDI_EMPRESA:
+                return $this->procesarHdiEmpresa($text);
             default:
                 throw new InvalidArgumentException("El ramo {$ramo->slug} no tiene un procesador definido.");
         }
@@ -142,8 +145,8 @@ class HdiSegurosService implements SeguroServiceInterface
             $datos['total_pagar'] = $ultimo_monto ? (float) str_replace(',', '', $ultimo_monto) : 0.00;
         }
 
-       // return $datos;
-       dd($datos);
+        return $datos;
+       //dd($datos);
     }
 
     private function extraerDato(string $text, string $pattern, $default = null)
@@ -290,8 +293,63 @@ private function formatearFecha(string $fecha): ?string
 
     private function procesarCamionesHasta3_5(String $text):array{
         $datos =[];
+        $datos = [];
 
-        dd($text);
+        // Nombre del cliente (antes de RFC:)
+        if (preg_match('/(?:\n|^)([A-ZÁÉÍÓÚÑ\s]+)\nRFC:/i', $text, $matches)) {
+            $datos['nombre_cliente'] = trim($matches[1]) ?: 'SIN NOMBRE';
+        } else {
+            $datos['nombre_cliente'] = 'SIN NOMBRE';
+        }
+
+        // RFC
+        $datos['rfc'] = $this->extraerDato($text, '/RFC:\s*([A-Z0-9]{12,13})/i') ?? 'N/A';
+
+        // Número de póliza
+        $datos['numero_poliza'] = $this->extraerDato($text, '/Póliza:\s*([\d\-]+)/i') ?? 'N/A';
+
+        // Póliza anterior
+        $datos['poliza_anterior'] = $this->extraerDato($text, '/Póliza Anterior\s*:\s*([\d\-]+)/i') ?? 'N/A';
+
+        // Vigencia
+        if (preg_match('/Vigencia:\s*Desde las \d{2}:\d{2} hrs\. del\s*(\d{2}\/\d{2}\/\d{4})\s*Hasta las \d{2}:\d{2} hrs\. del\s*(\d{2}\/\d{2}\/\d{4})/i', $text, $matches)) {
+            $inicio = DateTime::createFromFormat('d/m/Y', $matches[1]);
+            $fin = DateTime::createFromFormat('d/m/Y', $matches[2]);
+            $datos['vigencia_inicio'] = $inicio ? $inicio->format('Y-m-d') : '0000-00-00';
+            $datos['vigencia_fin'] = $fin ? $fin->format('Y-m-d') : '0000-00-00';
+        } else {
+            $datos['vigencia_inicio'] = '0000-00-00';
+            $datos['vigencia_fin'] = '0000-00-00';
+        }
+
+        // Forma de pago
+        if (preg_match('/(ANUAL|SEMESTRAL|TRIMESTRAL|MENSUAL)\s*(EFECTIVO|CHEQUE|TARJETA)?/i', $text, $matches)) {
+            $datos['forma_pago'] = trim($matches[0]);
+        } else {
+            $datos['forma_pago'] = 'N/A';
+        }
+
+        // Agente
+        if (preg_match('/Agente:\s*(\d+)\s+([A-ZÁÉÍÓÚÑa-záéíóúñ\s\.\-]+)(?=\n|$)/i', $text, $matches)) {
+            $datos['numero_agente'] = trim($matches[1]);
+            $datos['nombre_agente'] = trim($matches[2]);
+        } else {
+            $datos['numero_agente'] = '000000';
+            $datos['nombre_agente'] = 'N/A';
+        }
+
+        // Total a pagar
+        if (preg_match('/([0-9,]+\.\d{2})\s*Total a Pagar/', $text, $matches)) {
+            $datos['total_pagar'] = (float) str_replace(',', '', trim($matches[1]));
+        } else {
+            preg_match_all('/[\d,]+\.\d{2}/', $text, $matches);
+            $ultimo_monto = end($matches[0]);
+            $datos['total_pagar'] = $ultimo_monto ? (float) str_replace(',', '', $ultimo_monto) : 0.00;
+        }
+
+        
+       return $datos;
+        //dd($text);
     }
 
     private function procesarCamionesMasDe_3_5(String $text):array{
@@ -406,20 +464,87 @@ private function formatearFecha(string $fecha): ?string
             $datos['nombre_agente'] = 'N/A';
         }
 
-        // Total a pagar
+        //Total A Pagar
+
         if (preg_match('/Prima Total\s*\$([\d,]+\.\d{2})/i', $text, $matches)) {
             $datos['total_pagar'] = (float) str_replace(',', '', trim($matches[1]));
         } else {
-            preg_match_all('/\$[\d,]+\.\d{2}/', $text, $matches);
-            $ultimo_monto = end($matches[0]);
-            $datos['total_pagar'] = $ultimo_monto ? (float) str_replace(['$', ','], '', $ultimo_monto) : 0.00;
+            $datos['total_pagar'] = 0.00;
         }
        
-
-        return $datos;
-        //dd($datos);
-
+        dd($datos);
+       // return $datos;
     }
+
+    private function procesarHdiEmpresa(string $text): array
+    {
+        $datos = [];
+        //Nombre de clientes 
+    
+        if (preg_match('/Nombre:\s*([A-ZÁÉÍÓÚÑ\s\.\-]+)(?=\nDomicilio Fiscal:)/i', $text, $matches)) {
+            $datos['nombre_cliente'] = trim($matches[1]) ?: 'SIN NOMBRE';
+        } else {
+            $datos['nombre_cliente'] = 'SIN NOMBRE';
+        }
+    
+        // RFC
+        $rfc = $this->extraerDato($text, '/RFC:\s*([A-Z0-9]{12,13})/i');
+        $datos['rfc'] = $rfc && preg_match('/^[A-Z0-9]{12,13}$/', $rfc) ? $rfc : 'N/A';
+    
+        // Número de póliza
+        $numeroPoliza = $this->extraerDato($text, '/No\. de Póliza:\s*([\d\s\-]+)/i');
+        $datos['numero_poliza'] = $numeroPoliza && preg_match('/^[\d\s\-]+$/', $numeroPoliza) ? trim($numeroPoliza) : 'N/A';
+    
+        // Vigencia
+        if (preg_match('/Vigencia:\s*Desde las \d{2}\s*Hrs\.\s*del\s*(\d{2}\/\w{3}\/\d{4})\s*Hasta las \d{2}\s*Hrs\.\s*del\s*(\d{2}\/\w{3}\/\d{4})/i', $text, $matches)) {
+            $meses = [
+                'ENE' => '01', 'FEB' => '02', 'MAR' => '03', 'ABR' => '04',
+                'MAY' => '05', 'JUN' => '06', 'JUL' => '07', 'AGO' => '08',
+                'SEP' => '09', 'OCT' => '10', 'NOV' => '11', 'DIC' => '12'
+            ];
+            [$diaInicio, $mesInicio, $anioInicio] = explode('/', $matches[1]);
+            [$diaFin, $mesFin, $anioFin] = explode('/', $matches[2]);
+            $mesInicioNum = $meses[strtoupper($mesInicio)] ?? '01';
+            $mesFinNum = $meses[strtoupper($mesFin)] ?? '01';
+            $datos['vigencia_inicio'] = "$anioInicio-$mesInicioNum-$diaInicio";
+            $datos['vigencia_fin'] = "$anioFin-$mesFinNum-$diaFin";
+        } else {
+            $datos['vigencia_inicio'] = null;
+            $datos['vigencia_fin'] = null;
+        }
+    
+        // Forma de pago
+        if (preg_match('/Forma de pago:\s*(ANUAL|SEMESTRAL|TRIMESTRAL|MENSUAL)\s*(EFECTIVO|CHEQUE|TARJETA)?/i', $text, $matches)) {
+            $datos['forma_pago'] = trim($matches[1] . ' ' . ($matches[2] ?? ''));
+        } else {
+            $datos['forma_pago'] = 'N/A';
+        }
+    
+        // Agente
+        if (preg_match('/Clave:\s*(\d+)\s*Nombre:\s*([A-ZÁÉÍÓÚÑa-záéíóúñ\s]+)(?=\n|$)/i', $text, $matches)) {
+            $datos['numero_agente'] = is_numeric($matches[1]) ? trim($matches[1]) : '000000';
+            $datos['nombre_agente'] = trim($matches[2]);
+        } else {
+            $datos['numero_agente'] = '000000';
+            $datos['nombre_agente'] = 'N/A';
+        }
+    
+        // Total a pagar
+        if (preg_match('/Prima Total\s*\$([\d,]+\.\d{2})/i', $text, $matches)) {
+            $datos['total_pagar'] = (float) str_replace(',', '', trim($matches[1]));
+        } elseif (preg_match_all('/\$[\d,]+\.\d{2}/', $text, $matches)) {
+            $ultimo_monto = end($matches[0]);
+            $datos['total_pagar'] = $ultimo_monto ? (float) str_replace(['$', ','], '', $ultimo_monto) : 0.00;
+        } else {
+            $datos['total_pagar'] = 0.00;
+        }
+    
+        //return $datos;
+        dd($datos);
+    }
+
+
+
     private function procesarHdiPaqueteFamiliarTodoRiesgo(string $text): array
     {
         $datos = [

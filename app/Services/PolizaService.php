@@ -13,7 +13,7 @@ class PolizaService
     protected $seguroServiceFactory;
 
     public function __construct(SeguroServiceFactory $seguroServiceFactory)
-    {
+    { 
         $this->seguroServiceFactory = $seguroServiceFactory;
     }
 
@@ -33,12 +33,10 @@ class PolizaService
                 throw new Exception('Datos extraídos del PDF inválidos.'); // Usa la clase Exception importada
             }
 
-            // Crear o encontrar Cliente
-            $cliente = Cliente::where('rfc', $datosExtraidos['rfc'])->first();
-            if (!$cliente) {
-                $nombreCompleto = $datosExtraidos['nombre_cliente'] ?? 'Nombre no encontrado';
-                $cliente = Cliente::create(['rfc' => $datosExtraidos['rfc'], 'nombre_completo' => $nombreCompleto]);
-            }
+            $nombreCompleto = $datosExtraidos['nombre_cliente'] ?? 'Nombre no encontrado';
+            Log::info('Nombre del cliente:', ['nombre' => $nombreCompleto]); // Verifica el valor asignado
+            
+            $cliente = Cliente::create(['rfc' => $datosExtraidos['rfc'], 'nombre_completo' => $nombreCompleto]);
 
             // Crear o encontrar Agente (similar a Cliente)
             $agente = Agente::where('numero_agentes', $datosExtraidos['numero_agente'])->first();
