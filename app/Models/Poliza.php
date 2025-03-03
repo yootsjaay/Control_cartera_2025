@@ -68,8 +68,11 @@ class Poliza extends Model
 		return $this->belongsTo(Compania::class);
 	}
 
-	public function seguro()
-	{
-		return $this->belongsTo(Seguro::class);
+	public function ramo() {
+		return $this->belongsTo(Ramo::class, 'ramo_id');
+	}
+	
+	public function seguro() {
+		return $this->belongsTo(Seguro::class, 'seguro_id');
 	}
 }

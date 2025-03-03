@@ -45,8 +45,8 @@
                 <div class="col-md-3">
                     <select id="tipoFilter" class="form-control">
                         <option value="">Todos los tipos</option>
-                        @foreach($tipos as $tipo)
-                            <option value="{{ $tipo }}">{{ $tipo }}</option>
+                        @foreach($seguros as $ramos)
+                            <option value="{{ $ramos}}"></option>
                         @endforeach
                     </select>
                 </div>
@@ -106,8 +106,10 @@
                                     <span class="text-dark-75 font-weight-bolder">${{ number_format($poliza->total_a_pagar, 2) }}</span>
                                     <small class="text-muted d-block">{{ $poliza->forma_pago ?? 'N/A' }}</small>
                                 </td>
-                                <td>{{ $poliza->seguro?->nombre }}</td>
-                                <td>{{ $poliza->ramos?->nombre_ramo }}</td>
+                                <td>{{ $poliza->seguro?->nombre}}</td>
+                               
+                                <td>{{ $poliza->ramo->nombre_ramo ?? 'N/A' }}</td>
+                                
                                 <td class="text-center">
                                     @if ($poliza->archivo_pdf)
                                         <a href="{{ asset('storage/' . $poliza->archivo_pdf) }}" 
@@ -247,24 +249,24 @@ $(document).ready(function() {
 
     $('#statusFilter').on('change', function() {
         const value = this.value;
-        table.column(6).search(value === 'vigente' ? 'Vigente' : 'Vencida').draw();
+        table.column(8).search(value === 'vigente' ? 'Vigente' : 'Vencida').draw(); // Asegúrate de que la columna 8 sea la correcta
     });
 
-  // Filtro por tipo (basado en tipo_seguro)
-  $('#tipoFilter').on('change', function() {
-                var value = this.value;
-                table.column(0).search(value ? value : '', true, false).draw(); // Busca en la columna Póliza
-            });
+    $('#tipoFilter').on('change', function() {
+        const value = this.value;
+        table.column(5).search(value).draw(); // Asegúrate de que la columna 5 sea la correcta
+    });
 
     // Confirmación de eliminación
     $('#polizasTable').on('click', '.delete-btn', function(e) {
         e.preventDefault();
         const form = $(this).closest('form');
+        const polizaNumero = $(this).closest('tr').find('td:first').text();
         
         Swal.fire({
             title: '¿Eliminar póliza?',
-            html: `<p>Esta acción eliminará permanentemente:<br>
-                  <strong>${$(this).closest('tr').find('td:first').text()}</strong></p>`,
+            html: `<p>Esta acción eliminará permanentemente la póliza:<br>
+                  <strong>${polizaNumero}</strong></p>`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',
