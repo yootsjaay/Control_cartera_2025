@@ -45,7 +45,7 @@
                 <div class="col-md-3">
     <select id="tipoFilter" class="form-control">
         <option value="">Todos los tipos</option>
-        @foreach($ramos as $id => $nombre)
+        @foreach($polizas as $id => $nombre)
             <option value="{{ $id }}">{{ $nombre }}</option>
         @endforeach
     </select>

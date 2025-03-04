@@ -59,7 +59,8 @@ class Poliza extends Model
 		'cliente_id',
 		'compania_id',
 		'seguro_id',
-		'ramo_id'
+		'ramo_id',
+		'user_id', // Asegúrate de incluir user_id aquí
 	];
 
 	public function cliente()

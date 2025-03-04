@@ -2,9 +2,14 @@
 
 @section('title', 'Crear Compañía')
 
-@section('content_header')
+@section('css')
     <meta name="csrf-token" content="{{ csrf_token() }}">
-@stop
+    <style>
+        .form-group label { font-weight: 500; }
+        .card { box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .card-custom { max-width: 700px; margin: 0 auto; }
+    </style>
+@endsection
 
 @section('content')
 <div class="container-fluid">
@@ -19,7 +24,7 @@
         </div>
     </div>
 
-    <div class="card card-outline card-primary" style="max-width: 700px; margin: 0 auto;">
+    <div class="card card-outline card-primary card-custom">
         <div class="card-header">
             <h3 class="card-title"><i class="fas fa-plus-circle mr-2"></i> Nueva Compañía</h3>
         </div>
@@ -52,7 +57,7 @@
                         <option value="" disabled selected>Seleccione una compañía</option>
                         @foreach ($clases as $clase)
                             <option value="{{ $clase }}" {{ old('clase') == $clase ? 'selected' : '' }}>
-                                {{ ucwords(str_replace('_', ' ', $clase)) }} <!-- Mostrar nombre legible -->
+                                {{ ucwords(str_replace('_', ' ', $clase)) }}
                             </option>
                         @endforeach
                     </select>

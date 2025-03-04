@@ -19,30 +19,25 @@ class PolizasController extends Controller
         $this->polizaService = $polizaService;
     }
 
-   // En el controlador (por ejemplo, PolizaController.php)
-   public function index()
-   {
-       // Cargar las pólizas con las relaciones necesarias
-       $polizas = Poliza::with(['compania', 'cliente', 'seguro.ramos'])->paginate(10);
-   
-       // Obtener compañías y seguros para filtros (solo id y nombre)
-       $companias = Compania::pluck('nombre', 'id');
-       $seguros = Seguro::pluck('nombre', 'id');
-   
-       // Obtener tipos únicos de seguros y ramos
-       $tipos_seguros = Seguro::distinct()->pluck('nombre');
-       $ramos = Ramo::whereHas('polizas')->pluck('nombre_ramo', 'id');
-   
-       // Combinar tipos si es necesario
-       $tipos = $tipos_seguros->merge($tipos_ramos)->unique()->sort()->values();
-   
-       return view('polizas.index', [
-           'polizas'   => $polizas,
-           'companias' => $companias,
-           'seguros'   => $seguros,
-           'tipos'     => $tipos, // Pasar los tipos combinados a la vista
-       ]);
-   }
+    public function index()
+    {
+        // Cargar las pólizas con las relaciones necesarias
+        $polizas = Poliza::with(['compania', 'cliente', 'seguro.ramos'])->paginate(10);
+    
+        // Obtener compañías y seguros para filtros (solo id y nombre)
+        $companias = Compania::all();
+        $seguros =Seguro::all();
+    
+        // Obtener tipos únicos de seguros
+        $tipos = Seguro::distinct()->pluck('nombre');
+    
+        return view('polizas.index', [
+            'polizas'   => $polizas,
+            'companias' => $companias,
+            'seguros'   => $seguros,
+            'tipos'     => $tipos, // Pasar solo los tipos de seguros a la vista
+        ]);
+    }
     public function create()
     {
         $clientes  = Cliente::all();

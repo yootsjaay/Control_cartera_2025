@@ -9,6 +9,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 /**
  * Class Ramo
@@ -47,5 +48,13 @@ class Ramo extends Model
 	public function polizas()
 	{
 		return $this->hasMany(Poliza::class);
+	}
+
+	protected static function boot(){
+		parent::boot();
+
+		static::creating(function ($ramo){
+			$ramo->slug =Str::slug($ramo->nombre_ramo);
+		});
 	}
 }
