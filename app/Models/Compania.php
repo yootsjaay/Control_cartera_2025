@@ -9,7 +9,6 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 
 /**
  * Class Compania
@@ -45,17 +44,4 @@ class Compania extends Model
 	{
 		return $this->hasMany(Seguro::class);
 	}
-	protected static function boot()
-    {
-        parent::boot();
-        static::saving(function ($compania) {
-            $baseSlug = Str::slug($compania->nombre, '-');
-            $slug = $baseSlug;
-            $count = 1;
-            while (Compania::where('slug', $slug)->where('id', '!=', $compania->id ?? 0)->exists()) {
-                $slug = $baseSlug . '-' . $count++;
-            }
-            $compania->slug = $slug;
-        });
-    }
 }

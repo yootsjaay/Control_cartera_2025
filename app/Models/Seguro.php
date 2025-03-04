@@ -48,7 +48,8 @@ class Seguro extends Model
 		return $this->hasMany(Poliza::class);
 	}
 
-	public function ramos() {
+	public function ramos()
+	{
 		return $this->hasMany(Ramo::class, 'id_seguros');
 	}
 }

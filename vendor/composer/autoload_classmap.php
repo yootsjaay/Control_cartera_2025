@@ -50,6 +50,7 @@ return array(
     'App\\Models\\Seguro' => $baseDir . '/app/Models/Seguro.php',
     'App\\Models\\User' => $baseDir . '/app/Models/User.php',
     'App\\Notifications\\InvoicePaid' => $baseDir . '/app/Notifications/InvoicePaid.php',
+    'App\\Policies\\PolizaPolicy' => $baseDir . '/app/Policies/PolizaPolicy.php',
     'App\\Providers\\AppServiceProvider' => $baseDir . '/app/Providers/AppServiceProvider.php',
     'App\\Providers\\AuthServiceProvider' => $baseDir . '/app/Providers/AuthServiceProvider.php',
     'App\\Providers\\BroadcastServiceProvider' => $baseDir . '/app/Providers/BroadcastServiceProvider.php',

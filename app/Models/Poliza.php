@@ -25,9 +25,11 @@ use Illuminate\Database\Eloquent\Model;
  * @property int $cliente_id
  * @property int $compania_id
  * @property int $seguro_id
+ * @property int $ramo_id
  * 
  * @property Cliente $cliente
  * @property Compania $compania
+ * @property Ramo $ramo
  * @property Seguro $seguro
  *
  * @package App\Models
@@ -42,7 +44,8 @@ class Poliza extends Model
 		'total_a_pagar' => 'float',
 		'cliente_id' => 'int',
 		'compania_id' => 'int',
-		'seguro_id' => 'int'
+		'seguro_id' => 'int',
+		'ramo_id' => 'int'
 	];
 
 	protected $fillable = [
@@ -55,7 +58,8 @@ class Poliza extends Model
 		'status',
 		'cliente_id',
 		'compania_id',
-		'seguro_id'
+		'seguro_id',
+		'ramo_id'
 	];
 
 	public function cliente()
@@ -68,11 +72,13 @@ class Poliza extends Model
 		return $this->belongsTo(Compania::class);
 	}
 
-	public function ramo() {
-		return $this->belongsTo(Ramo::class, 'ramo_id');
+	public function ramo()
+	{
+		return $this->belongsTo(Ramo::class);
 	}
-	
-	public function seguro() {
-		return $this->belongsTo(Seguro::class, 'seguro_id');
+
+	public function seguro()
+	{
+		return $this->belongsTo(Seguro::class);
 	}
 }

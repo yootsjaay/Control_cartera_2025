@@ -694,6 +694,7 @@ class ComposerStaticInitcbed58921fb40526dd756235091dd357
         'App\\Models\\Seguro' => __DIR__ . '/../..' . '/app/Models/Seguro.php',
         'App\\Models\\User' => __DIR__ . '/../..' . '/app/Models/User.php',
         'App\\Notifications\\InvoicePaid' => __DIR__ . '/../..' . '/app/Notifications/InvoicePaid.php',
+        'App\\Policies\\PolizaPolicy' => __DIR__ . '/../..' . '/app/Policies/PolizaPolicy.php',
         'App\\Providers\\AppServiceProvider' => __DIR__ . '/../..' . '/app/Providers/AppServiceProvider.php',
         'App\\Providers\\AuthServiceProvider' => __DIR__ . '/../..' . '/app/Providers/AuthServiceProvider.php',
         'App\\Providers\\BroadcastServiceProvider' => __DIR__ . '/../..' . '/app/Providers/BroadcastServiceProvider.php',
