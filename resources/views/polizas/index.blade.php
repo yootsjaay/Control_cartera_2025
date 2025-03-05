@@ -108,7 +108,7 @@
                                 </td>
                                 <td>{{ $poliza->seguro?->nombre}}</td>
                                
-                                <td>{{ $poliza->ramo->nombre_ramo ?? 'N/A' }}</td>
+                                <td>{{ $poliza->ramo->slug ?? 'N/A' }}</td>
                                 
                                 <td class="text-center">
                                     @if ($poliza->archivo_pdf)
