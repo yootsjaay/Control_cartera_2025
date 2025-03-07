@@ -142,7 +142,7 @@ class PolizasController extends Controller
 
         $poliza->delete();
 
-        return redirect()->route('polizas.index')->with('success', 'Póliza eliminada correctamente.');
+        return redirect()->route('polizas.index')->with('delete', 'Póliza eliminada correctamente.');
     }
 
 

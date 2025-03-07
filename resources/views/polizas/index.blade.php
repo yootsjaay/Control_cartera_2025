@@ -5,14 +5,7 @@
 @section('content_header')
     <meta name="csrf-token" content="{{ csrf_token() }}">
 @stop
-
-
 @section('content')
-@if(session('success'))
-        <div class="alert alert-success">
-            {{ session('success') }}
-        </div>
-    @endif
 
     <div class="card card-outline card-primary">
         <div class="card-header">
@@ -106,7 +99,8 @@
                                     <span class="text-dark-75 font-weight-bolder">${{ number_format($poliza->total_a_pagar, 2) }}</span>
                                     <small class="text-muted d-block">{{ $poliza->forma_pago ?? 'N/A' }}</small>
                                 </td>
-                                <td>{{ $poliza->seguro?->nombre}}</td>
+                                <td>{{ $poliza->seguro?->nombre
+                                    }}</td>
                                
                                 <td>{{ $poliza->ramo->slug ?? 'N/A' }}</td>
                                 
@@ -279,6 +273,28 @@ $(document).ready(function() {
             }
         });
     });
+ // Notificación de "poliza Eliminado"
+ @if (session('delete'))
+        Swal.fire({
+            title: '¡Éxito!',
+            text: 'Poliza Eliminado',
+            icon: 'delete',
+            confirmButtonText: 'Aceptar',
+            timer: 3000, // Se cierra automáticamente después de 3 segundos
+            timerProgressBar: true
+        });
+    @endif
+    // Notificación de "Poliza Credo"
+    @if (session('success'))
+        Swal.fire({
+            title: '¡Éxito!',
+            text: 'Poliza creado correctamente',
+            icon: 'success',
+            confirmButtonText: 'Aceptar',
+            timer: 3000, // Se cierra automáticamente después de 3 segundos
+            timerProgressBar: true
+        });
+    @endif
 
     // Tooltips
     $('[data-toggle="tooltip"]').tooltip({

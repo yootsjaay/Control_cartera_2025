@@ -12,26 +12,21 @@ use Exception;
 
 class BanorteSeguroService implements SeguroServiceInterface
 {
-  
-    public function getSeguros()
-    {
-        $compania = Compania::where('slug', $slug)->firstOrFail();
+    const RAMO_AUTOMOVILES_RESIDENTES = 'automoviles-residentes-banorte';
+    const RAMO_GASTOS_MEDICOS_INDIVIDUAL='gastos-medicos-mayores-individual';
+    const RAMO_GASTOS_MEDICOS_MAYORES_GRUPOS ='gastos-medicos-mayores-grupo';
 
-    return Seguro::where('compania_id', $compania->id)->get(['id', 'nombre']);
+    protected $parser;
+
+    public function __construct(Parser $parser)
+    {
+        $this->parser = $parser;
     }
 
-    /**
-     * Obtiene los ramos disponibles para un seguro específico de Banorte.
-     */
-    public function getRamos($seguroId)
-    {
-        return Ramo::where('id_seguros', $seguroId)
-            ->get(['id', 'nombre_ramo']);
-    }
     public function extractToData(UploadedFile $archivo, Seguro $seguro, Ramo $ramo): array
     {
         if ($seguro->compania->slug !== 'banorte-seguros') {
-            throw new InvalidArgumentException("El seguro seleccionado no pertenece a HDI.");
+            throw new InvalidArgumentException("El seguro seleccionado no pertenece a Banorte.");
         }
 
         if ($ramo->id_seguros != $seguro->id) {
@@ -39,143 +34,172 @@ class BanorteSeguroService implements SeguroServiceInterface
         }
 
         try {
-            // Convertir el PDF a imágenes y extraer el texto con OCR
-            $text = $this->extractTextWithOCR($archivo);
-
+            $text = $this->extractText($archivo);
             \Log::info("Texto extraído:", ['data' => substr($text, 0, 500)]);
             return $this->procesarTexto($text, $ramo);
         } catch (Exception $e) {
             \Log::error("Error al procesar el PDF: " . $e->getMessage());
-            throw new InvalidArgumentException("No se pudo procesar el archivo PDF.");
+            throw new InvalidArgumentException("No se pudo procesar el archivo PDF: " . $e->getMessage());
         }
     }
 
-    private function extractTextWithOCR(UploadedFile $archivo): string
+    private function extractText(UploadedFile $archivo): string
     {
-        $outputDir = storage_path('app/pdf_images');
-        if (!is_dir($outputDir)) {
-            mkdir($outputDir, 0777, true);
+        try {
+            $pdf = $this->parser->parseFile($archivo->getPathname());
+            $text = $pdf->getText();
+            return $text;
+        } catch (\Exception $e) {
+            \Log::error("Error al parsear el PDF: " . $e->getMessage());
+            throw new Exception("Error al procesar el PDF.");
         }
-
-        // Ruta del PDF original
-        $pdfPath = $archivo->getPathname();
-        $imagePattern = "{$outputDir}/page-%04d.png";
-
-        // Convertir PDF a imágenes (1 imagen por página)
-        exec("convert -density 300 {$pdfPath} -depth 8 -strip -background white -alpha off {$imagePattern}");
-
-        // Obtener todas las imágenes generadas
-        $images = glob("{$outputDir}/*.png");
-        if (empty($images)) {
-            throw new Exception("No se generaron imágenes del PDF.");
-        }
-
-        $fullText = '';
-
-        foreach ($images as $image) {
-            // Aplicar OCR con Tesseract en cada imagen
-            $outputText = shell_exec("tesseract {$image} stdout -l spa+eng"); // Español + Inglés
-            $fullText .= trim($outputText) . "\n";
-            unlink($image); // Eliminar la imagen temporal
-        }
-
-        return trim($fullText);
     }
-
 
     private function procesarTexto(string $text, Ramo $ramo): array
     {
         switch (strtolower($ramo->slug)) {
-            case 'gastos-medicos-mayores':
-                return $this->procesarGastosMedicos($text);
-            case 'automoviles-residentes':
-                return $this->procesarAutos($text);
-            case 'danios':
-                return $this->procesarDanios($text);
+            case self::RAMO_AUTOMOVILES_RESIDENTES:
+                return $this->procesarAutosResidentes($text);
+            case self::RAMO_GASTOS_MEDICOS_INDIVIDUAL:
+                return $this->procesarGastosMedicosIndividual($text);
+            case self::RAMO_GASTOS_MEDICOS_MAYORES_GRUPOS:
+                return $this->procesarGastosMedicosMayoresGrupos($text);
             default:
                 throw new InvalidArgumentException("El ramo {$ramo->slug} no tiene un procesador definido.");
         }
     }
+
+    private function extraerDato(string $text, string $pattern, bool $trim = true): ?string
+    {
+        if (preg_match($pattern, $text, $matches)) {
+            return $trim ? trim($matches[1]) : $matches[1];
+        }
+        return null;
+    }
+    private function procesarGastosMedicosIndividual(String $text):array{
     
 
-
-private function procesarGastosMedicos(string $text): array
-{
-    $datosExtraidos = [];
-
-    //  Extraer número de póliza
-    if (preg_match('/NO\.\s*DE\s*PÓLIZA[\s:]+(\d+)/i', $text, $match)) {
-        $datosExtraidos['numero_poliza'] = $match[1];
     }
+    private function procesarGastosMedicosMayoresGrupos(String $text):array{
+        $datos = [];
 
-    //  Extraer fechas de vigencia
-    if (preg_match('/VIGENCIA\s+DESDE.*?(\d{2}\/\d{2}\/\d{4}).*?(\d{2}\/\d{2}\/\d{4})/s', $text, $match)) {
-        try {
-            $datosExtraidos['fecha_inicio'] = Carbon::createFromFormat('d/m/Y', $match[1])->format('Y-m-d');
-            $datosExtraidos['fecha_fin'] = Carbon::createFromFormat('d/m/Y', $match[2])->format('Y-m-d');
-        } catch (Exception $e) {
-            $datosExtraidos['fecha_inicio'] = null;
-            $datosExtraidos['fecha_fin'] = null;
+        // Nombre del contratante
+        if (preg_match('/Nombre y apellido completo\s*([A-ZÁÉÍÓÚÑ\s]+)(?=Domicilio:)/i', $text, $matches)) {
+            $datos['nombre_cliente'] = trim($matches[1]) ?: 'SIN NOMBRE';
+        } else {
+            $datos['nombre_cliente'] = 'SIN NOMBRE';
         }
-    }
 
-    //  Extraer información del asegurado
-    if (preg_match_all('/([A-ZÁÉÍÓÚÑ\s]+)\t(\d{2}-\d{2}-\d{4})\s+(\d+)\s+([\d,]+)\s+M\.N\./', $text, $matches, PREG_SET_ORDER)) {
-        $asegurados = [];
-        foreach ($matches as $match) {
-            $asegurados[] = [
-                'nombre_cliente' => trim($match[1] ?? ''),
-                'fecha_nacimiento' => $match[2] ?? null,
-                'edad' => isset($match[3]) ? (int) $match[3] : null,
-                'suma_asegurada' => isset($match[4]) ? str_replace(',', '', $match[4]) : null
+        // RFC
+        $datos['rfc'] = $this->extraerDato($text, '/R\.F\.C:\s*([A-Z0-9]+)/i') ?? 'N/A';
+
+        // Número de póliza
+        $datos['numero_poliza'] = $this->extraerDato($text, '/NO\. DE PÓLIZA\s*(\d+)/i') ?? null;
+
+        // Vigencia
+        if (preg_match('/VIGENCIA\s*DESDE\s*\d{2}\s*HRS\.\s*HASTA\s*\d{2}\s*HRS\.\s*(\d{2}\/\d{2}\/\d{4})\s*(\d{2}\/\d{2}\/\d{4})/i', $text, $matches)) {
+            $meses = [
+                '01' => '01', '02' => '02', '03' => '03', '04' => '04',
+                '05' => '05', '06' => '06', '07' => '07', '08' => '08',
+                '09' => '09', '10' => '10', '11' => '11', '12' => '12'
             ];
+            [$diaInicio, $mesInicio, $anioInicio] = explode('/', $matches[1]);
+            [$diaFin, $mesFin, $anioFin] = explode('/', $matches[2]);
+            $mesInicioNum = $meses[$mesInicio] ?? '01';
+            $mesFinNum = $meses[$mesFin] ?? '01';
+            $datos['vigencia_inicio'] = "$anioInicio-$mesInicioNum-$diaInicio";
+            $datos['vigencia_fin'] = "$anioFin-$mesFinNum-$diaFin";
+        } else {
+            $datos['vigencia_inicio'] = null;
+            $datos['vigencia_fin'] = null;
         }
-        $datosExtraidos['asegurados'] = $asegurados;
+
+        // Forma de pago
+        $datos['forma_pago'] = $this->extraerDato($text, '/FORMA DE PAGO\s*(ANUAL|SEMESTRAL|TRIMESTRAL|MENSUAL)/i') ?? 'N/A';
+
+        // Número de agente
+        $datos['numero_agente'] = $this->extraerDato($text, '/AGENTE\s*(\d+)/i') ?? '000000';
+
+        // Nombre del agente (extraído de "Nombre y Clave del Agente")
+        $datos['nombre_agente'] = $this->extraerDato($text, '/Nombre y Clave del Agente:\s*([A-ZÁÉÍÓÚÑ\s]+)\s*\d+/i') ?? 'AGENTE NO ESPECIFICADO';
+
+        // Total a pagar (Prima Total)
+        $primaText = substr($text, strpos($text, "Prima Total"), 50);
+        \Log::info("Texto alrededor de Prima Total:", ['text' => $primaText]);
+        if (preg_match('/Prima Total\s*[\r\n\s]*\$\s*([\d,\.]+)/i', $text, $matches)) {
+            $datos['total_pagar'] = str_replace(',', '', $matches[1]);
+        } else {
+            $datos['total_pagar'] = null;
+            \Log::warning("No se encontró Prima Total en el texto.");
+        }
+
+        // Log para depuración
+        \Log::info("Datos procesados (Gastos Médicos):", $datos);
+
+        return $datos;
+        //dd($datos);
     }
 
-    //  Verifica si se extrajo algo, si no, lanza error
-    if (empty($datosExtraidos)) {
-        throw new InvalidArgumentException("No se encontraron datos relevantes en el PDF.");
-    }
+    private function procesarAutosResidentes(string $text): array
+    {
+        $datos = [];
 
-    return $datosExtraidos;
+        // Nombre del contratante
+        if (preg_match('/Nombre del Contratante:\s*([A-ZÁÉÍÓÚÑ\s\.\-]+)(?=\tR\.F\.C\.)/i', $text, $matches)) {
+            $datos['nombre_cliente'] = trim($matches[1]) ?: 'SIN NOMBRE';
+        } else {
+            $datos['nombre_cliente'] = 'SIN NOMBRE';
+        }
+
+        // RFC
+        $datos['rfc'] = $this->extraerDato($text, '/R\.F\.C\.:([A-Z0-9]+)/i') ?? 'N/A';
+
+        // Número de póliza
+        if (preg_match('/No\.\s*de\s*Póliza.*?\s*(\d+)\s+\d+\s+(\w+)/s', $text, $matches)) {
+            $datos['numero_poliza'] = preg_replace('/\s+/', '', $matches[1]);
+        }
+
+        // Vigencia
+        if (preg_match('/Inicio Vigencia:\s*\d{2}:\d{2}\s*hrs\s*(\d{2}\/\w{3}\/\d{4}).*?Fin Vigencia:\s*\d{2}:\d{2}\s*hrs\s*(\d{2}\/\w{3}\/\d{4})/is', $text, $matches)) {
+            $meses = [
+                'ENE' => '01', 'FEB' => '02', 'MAR' => '03', 'ABR' => '04',
+                'MAY' => '05', 'JUN' => '06', 'JUL' => '07', 'AGO' => '08',
+                'SEP' => '09', 'OCT' => '10', 'NOV' => '11', 'DIC' => '12'
+            ];
+            [$diaInicio, $mesInicio, $anioInicio] = explode('/', $matches[1]);
+            [$diaFin, $mesFin, $anioFin] = explode('/', $matches[2]);
+            $mesInicioNum = $meses[strtoupper($mesInicio)] ?? '01';
+            $mesFinNum = $meses[strtoupper($mesFin)] ?? '01';
+            $datos['vigencia_inicio'] = "$anioInicio-$mesInicioNum-$diaInicio";
+            $datos['vigencia_fin'] = "$anioFin-$mesFinNum-$diaFin";
+        } else {
+            $datos['vigencia_inicio'] = null;
+            $datos['vigencia_fin'] = null;
+        }
+
+        // Forma de pago (ajustado para no incluir "Forma de pago:")
+        if (preg_match('/Forma de pago:\s*(ANUAL|SEMESTRAL|TRIMESTRAL|MENSUAL)\s*(\d{1,2}\s*MESES)?/i', $text, $matches)) {
+            $datos['forma_pago'] = trim($matches[1] . ' ' . ($matches[2] ?? '')); // Solo ANUAL 12 MESES
+        } else {
+            $datos['forma_pago'] = 'N/A';
+        }
+
+        // Número de agente
+        $datos['numero_agente'] = $this->extraerDato($text, '/Intermediario:\s*(\d+)\s+/i') ?? '000000';
+
+        // Nombre de agente (ajustado para no incluir texto adicional)
+        $datos['nombre_agente'] = $this->extraerDato($text, '/Intermediario:\s*\d+\s+([A-ZÁÉÍÓÚÑ\s]+)(?=Prima|$)/i') ?? 'AGENTE NO ESPECIFICADO';
+
+        // Total a pagar
+        if (preg_match('/Prima Total:\s*\$([\d,\.]+)/i', $text, $matches)) {
+            $datos['total_pagar'] = str_replace(',', '', $matches[1]);
+        } else {
+            $datos['total_pagar'] = null;
+        }
+        // Log para depuración
+        \Log::info("Datos procesados:", $datos);
+
+        return $datos;
+       // dd($datos);
+    }
 }
-private function procesarAutos(string $text): array
-{
-
-        $patterns = [
-            'numero_poliza' => '/No\. de Póliza\s+(\d+)/',
-            'nombre_cliente' => '/Nombre del Contratante:\s+([^\n]+?)(?:\s+R\.F\.C\.:|$)/', // Captura solo el nombre
-            'nombre_agente' => '/Intermediario:\s+\d+\s+([A-ZÁÉÍÓÚÑ\s]+)/',
-            'rfc' => '/R\.F\.C\.:?\s+([A-Z0-9]+)/', // Captura el RFC separado
-            'fecha_emision' => '/Fecha de emisión:\s+\d{2}:\d{2}hrs\s+(\d{2}\/[A-Z]{3}\/\d{4})/',
-            'fecha_fin' => '/Fin de vigencia:\s+\d{2}:\d{2}hrs\s+(\d{2}\/[A-Z]{3}\/\d{4})/',
-            'forma_pago' => '/Forma de pago:\s+([A-ZÁÉÍÓÚÑa-z]+)/',
-            'total_a_pagar' => '/Prima total:\s+\$ ([\d,\.]+)/',
-        ];
-    
-
-
-        $data = [];
-
-        foreach ($patterns as $key => $pattern) {
-            if (preg_match($pattern, $text, $matches)) {
-                $valor = trim(preg_replace('/_{2,}|▶|\s+/', ' ', $matches[1])); // Limpia guiones bajos y caracteres raros
-                
-                if (!empty($valor)) {
-                    $data[$key] = $valor;
-                }
-            }
-        }
-
-        return $data;
-        }
-
-        private function procesarDanios(String $text): array{
-            $pattern =[];
-
-            $data=[];
-            
-            
-        }
-        }
