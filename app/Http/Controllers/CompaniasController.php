@@ -13,7 +13,7 @@ use Exception;
 
 class CompaniasController extends Controller
 {
-   
+
 
     /**
      * Mostrar el listado de compañías.

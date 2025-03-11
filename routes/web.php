@@ -48,6 +48,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('role:user')->group(function () {
         // Rutas de pólizas (solo user puede ver pólizas)
         Route::resource('/polizas', PolizasController::class)->only(['index', 'show']);
+        Route::get('/obtener-recursos', [PolizasController::class, 'obtenerRecursos']);
+
     });
 
     // Rutas accesibles por `admin` y `user` (ver usuarios)

@@ -227,8 +227,8 @@ class HdiSegurosService implements SeguroServiceInterface
             $datos['total_pagar'] = (float) str_replace(',', '', trim($matches[1]));
         }
     
-        //return $datos;
-        dd($datos);
+        return $datos;
+       //dd($datos);
     }
     private function procesarHdiCasa(string $text): array
     {
@@ -503,9 +503,9 @@ private function procesarGastosMedicosTotal(string $text): array
     $datos['numero_poliza'] = $this->extraerDato($text, '/Suma Asegurada:\s*(.+)/i');
     preg_match_all('/[\d,]+\.\d{2}/', $text, $matches);
     $datos['total_pagar'] = (float)str_replace(',', '', end($matches[0]));
-
+return $datos;
     
-    dd($datos);
+   // dd($datos);
 }
 
 private function procesarGastosMedicosVital(string $text): array
