@@ -319,135 +319,145 @@ return [
     // Dashboard
     [
         'text' => 'Tablero',
-        'url'  => '/dashboard',
+        'url'  => 'dashboard',
         'icon' => 'fas fa-tachometer-alt',
     ],
 
-    // Policy Management
+    // Gestión de Pólizas
     [
         'text'    => 'Gestión de Pólizas',
         'icon'    => 'fas fa-file-alt',
-        'can'  => 'ver pólizas',
+        'can'     => 'ver pólizas',
         'submenu' => [
             [
-                'text' => 'Pólizas',
-                'url'  => '/polizas',
-                'icon' => 'fas fa-file-alt',
+                'text' => 'Listado de Pólizas',
+                'url'  => 'polizas',
+                'icon' => 'fas fa-list',
                 'can'  => 'ver pólizas',
             ],
             [
                 'text' => 'Nueva Póliza',
-                'url'  => '/polizas/create',
-                'icon' => 'fas fa-plus',
-                'can'  => 'crear pólizas',  
+                'url'  => 'polizas/create',
+                'icon' => 'fas fa-plus-circle',
+                'can'  => 'crear pólizas',
             ],
             [
-                'text' => 'Edita Poliza',
-                'url'  => '/polizas/edit',
-                'icon' => 'fas fa-redo',
+                'text' => 'Renovaciones',
+                'url'  => 'polizas/renovaciones',
+                'icon' => 'fas fa-sync-alt',
                 'can'  => 'renovacion de pólizas',
             ],
             [
-                'text' => 'Pólizas Vencidas',
-                'url'  => 'admin/policies/expired',
-                'icon' => 'fas fa-times-circle',
-                'can'  => 'pólizas vencida',
+                'text' => 'Archivos PDF',
+                'url'  => 'polizas/archivos',
+                'icon' => 'fas fa-file-pdf',
+                'can'  => 'subir archivos de pólizas',
             ],
             [
-                'text' => 'Pólizas Pendientes',
-                'url'  => 'admin/policies/pending',
-                'icon' => 'fas fa-hourglass-half',
-                'can'  => 'pólizas pendiente',
+                'text' => 'Vencidas',
+                'url'  => 'polizas/vencidas',
+                'icon' => 'fas fa-calendar-times',
+                'can'  => 'pólizas vencidas',
+            ],
+            [
+                'text' => 'Pendientes',
+                'url'  => 'polizas/pendientes',
+                'icon' => 'fas fa-exclamation-triangle',
+                'can'  => 'pólizas pendientes',
             ],
         ],
     ],
 
-    // Client Management
+    // Gestión de Clientes
     [
         'text'    => 'Gestión de Clientes',
         'icon'    => 'fas fa-users',
         'can'     => 'ver clientes',
         'submenu' => [
             [
-                'text' => 'Clientes',
-                'url'  => 'admin/clients',
-                'icon' => 'fas fa-users',
+                'text' => 'Listado de Clientes',
+                'url'  => 'clientes',
+                'icon' => 'fas fa-address-book',
                 'can'  => 'ver clientes',
             ],
             [
                 'text' => 'Nuevo Cliente',
-                'url'  => 'admin/clients/create',
+                'url'  => 'clientes/create',
                 'icon' => 'fas fa-user-plus',
                 'can'  => 'crear clientes',
             ],
         ],
     ],
 
-    // Insurance Management
+    // Módulo Administrativo
     [
-        'text'    => 'Gestión de Seguros',
-        'icon'    => 'fas fa-building',
-        'can'     => 'ver seguros',
+        'text'    => 'Administración',
+        'icon'    => 'fas fa-building-shield',
+        'can'     => 'gestionar sistema',
         'submenu' => [
             [
-                'text' => 'Compañías',
-                'url'  => 'admin/companies',
-                'icon' => 'fas fa-building',
-                'can'  => 'ver compañías',
+                'text' => 'Compañías Aseguradoras',
+                'url'  => 'companias',
+                'icon' => 'fas fa-house-chimney',
+                'can'  => 'gestionar sistema',
             ],
             [
-                'text' => 'Nueva Compañía',
-                'url'  => 'admin/companies/create',
-                'icon' => 'fas fa-plus',
-                'can'  => 'crear compañías',
+                'text' => 'Tipos de Seguros',
+                'url'  => 'seguros',
+                'icon' => 'fas fa-shield',
+                'can'  => 'gestionar sistema',
             ],
         ],
     ],
 
-    // Reports
+    // Reportes
     [
-        'text'    => 'Companias y Seguros',
-        'icon'    => 'fas fa-solid fa-building',
+        'text'    => 'Reportes',
+        'icon'    => 'fas fa-chart-line',
         'can'     => 'ver reportes',
         'submenu' => [
             [
-                'text' => 'Lista de Companias',
-                'url'  => '/companias',
-                'icon' => 'fas fa-solid fa-building',
-                'can'  => 'ver reportes',
+                'text' => 'Generar Reportes',
+                'url'  => 'reportes',
+                'icon' => 'fas fa-file-signature',
+                'can'  => 'crear reportes',
             ],
             [
-                'text' => 'Seguros',
-                'url'  => '/seguros',
-                'icon' => 'fas fa-solid fa-user-shield',
+                'text' => 'Exportar Datos',
+                'url'  => 'reportes/exportar',
+                'icon' => 'fas fa-file-export',
+                'can'  => 'exportar reportes',
+            ],
+            [
+                'text' => 'Estadísticas',
+                'url'  => 'reportes/estadisticas',
+                'icon' => 'fas fa-chart-pie',
                 'can'  => 'ver reportes',
-
             ],
         ],
     ],
 
-    // User Management
+    // Gestión de Usuarios
     [
-        'text'    => 'Gestión de Usuarios',
-        'icon'    => 'fas fa-users',
+        'text'    => 'Seguridad',
+        'icon'    => 'fas fa-user-lock',
         'can'     => 'ver usuarios',
         'submenu' => [
             [
-                'text' => 'Roles',
-                'url'  => '/roles',
-                'icon' => 'fas fa-users-cog',
-                'can'  => 'ver roles y permisos',
+                'text' => 'Usuarios',
+                'url'  => 'usuarios',
+                'icon' => 'fas fa-users-gear',
+                'can'  => 'ver usuarios',
             ],
             [
-                'text' => 'Usuarios',
-                'url'  => '/user',
-                'icon' => 'fas fa-user',
-                'can'  => 'ver usuarios',
+                'text' => 'Permisos',
+                'url'  => 'roles',
+                'icon' => 'fas fa-key',
+                'can'  => 'ver roles y permisos',
             ],
         ],
     ],
 ],
-
 
 
     /*

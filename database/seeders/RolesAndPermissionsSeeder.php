@@ -7,70 +7,88 @@ use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use App\Models\User;
 
-
 class RolesAndPermissionsSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Crear permisos para pólizas
-        Permission::firstOrCreate(['name' => 'crear pólizas']);
-        Permission::firstOrCreate(['name' => 'ver pólizas']);
-        Permission::firstOrCreate(['name' => 'editar pólizas']);
-        Permission::firstOrCreate(['name' => 'eliminar pólizas']);
-        Permission::firstOrCreate(['name' => 'subir archivos de pólizas']);
-        Permission::firstOrCreate(['name' => 'renovacion de pólizas']);
-        Permission::firstOrCreate(['name' => 'pólizas vencida']);
-        Permission::firstOrCreate(['name' => 'pólizas pendiente']);
+        // 1. Resetear caché de roles y permisos
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // Crear permisos para clientes o asegurados
-        Permission::firstOrCreate(['name' => 'crear clientes']);
-        Permission::firstOrCreate(['name' => 'ver clientes']);
-        Permission::firstOrCreate(['name' => 'editar clientes']);
-        Permission::firstOrCreate(['name' => 'eliminar clientes']);
+        // 2. Crear permisos con guard_name explícito
+        $this->createPermissions();
+        
+        // 3. Crear roles y asignar permisos
+        $adminRole = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $userRole = Role::firstOrCreate(['name' => 'user', 'guard_name' => 'web']);
 
-        // Crear permisos para usuarios y roles
-        Permission::firstOrCreate(['name' => 'crear usuarios']);
-        Permission::firstOrCreate(['name' => 'ver usuarios']);
-        Permission::firstOrCreate(['name' => 'editar usuarios']);
-        Permission::firstOrCreate(['name' => 'eliminar usuarios']);
-        Permission::firstOrCreate(['name' => 'asignar roles']);
-        Permission::firstOrCreate(['name' => 'ver roles y permisos']);
-
-        // Crear permisos para reportes
-        Permission::firstOrCreate(['name' => 'crear reportes']);
-        Permission::firstOrCreate(['name' => 'ver reportes']);
-        Permission::firstOrCreate(['name' => 'editar reportes']);
-        Permission::firstOrCreate(['name' => 'eliminar reportes']);
-        Permission::firstOrCreate(['name' => 'imprimir reportes']);
-        Permission::firstOrCreate(['name' => 'descargar reportes']);
-        Permission::firstOrCreate(['name' => 'exportar reportes']);
-
-        // Crear roles y asignar permisos
-        $adminRole = Role::firstOrCreate(['name' => 'admin']);
-        $userRole = Role::firstOrCreate(['name' => 'user']);
-
-        // Asignar todos los permisos al rol de administrador
+        // 4. Asignar todos los permisos a admin
         $adminRole->givePermissionTo(Permission::all());
 
-        // Asignar permisos específicos al rol de usuario
+        // 5. Permisos específicos para usuario regular
         $userRole->givePermissionTo([
             'ver pólizas',
             'ver clientes',
+            'subir archivos de pólizas' // Agregado para consistencia
         ]);
 
-        // Crear un usuario administrador por defecto
-        $adminUser = User::firstOrCreate([
-            'email' => 'admin@gmail.com' // Cambia el correo por el que prefieras
-        ], [
-            'name' => 'Administrador',
-            'password' => bcrypt('admin123') // Cambia la contraseña por una segura
-        ]);
+        // 6. Crear usuario admin con mejores prácticas
+        $this->createAdminUser();
+    }
 
-        // Asignar el rol de 'admin' al usuario administrador
-        $adminUser->assignRole('admin');
-    
+    private function createPermissions(): void
+    {
+        $permissions = [
+            // Pólizas
+            'crear pólizas', 
+            'ver pólizas',
+            'editar pólizas',
+            'eliminar pólizas',
+            'subir archivos de pólizas',
+            'renovacion de pólizas',
+            'pólizas vencidas', // Corregido a plural
+            'pólizas pendientes', // Corregido a plural
+
+            // Clientes
+            'crear clientes',
+            'ver clientes',
+            'editar clientes',
+            'eliminar clientes',
+
+            // Usuarios y Roles
+            'crear usuarios',
+            'ver usuarios',
+            'editar usuarios',
+            'eliminar usuarios',
+            'asignar roles',
+            'ver roles y permisos',
+
+            // Reportes
+            'crear reportes',
+            'ver reportes',
+            'editar reportes',
+            'eliminar reportes',
+            'imprimir reportes',
+            'descargar reportes',
+            'exportar reportes'
+        ];
+
+        foreach ($permissions as $permission) {
+            Permission::firstOrCreate([
+                'name' => $permission,
+                'guard_name' => 'web'
+            ]);
+        }
+    }
+
+    private function createAdminUser(): void
+    {
+        User::firstOrCreate(
+            ['email' => 'admin@seguros.com'],
+            [
+                'name' => 'Administrador del Sistema',
+                'password' => bcrypt('AdminSecurePassword123!'), // Contraseña más segura
+                'email_verified_at' => now() // Verificar email automáticamente
+            ]
+        )->assignRole('admin');
     }
 }
