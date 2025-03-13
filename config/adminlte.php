@@ -450,12 +450,27 @@ return [
                 'can'  => 'ver usuarios',
             ],
             [
-                'text' => 'Permisos',
+                'text' => 'Roles',
                 'url'  => 'roles',
                 'icon' => 'fas fa-key',
                 'can'  => 'ver roles y permisos',
+                'submenu' => [
+                    [
+                        'text' => 'Listado de Roles',
+                        'url'  => 'roles',
+                        'icon' => 'fas fa-list',
+                        'can'  => 'ver roles y permisos',
+                    ],
+                    [
+                        'text' => 'Crear Rol',
+                        'url'  => 'roles/create',
+                        'icon' => 'fas fa-plus-circle',
+                        'can'  => 'crear roles',
+                    ],
+                ],
             ],
         ],
+        
     ],
 ],
 

@@ -13,12 +13,11 @@ class RoleController extends Controller
      */
 
 
-    public function index()
-    {
-        $roles = Role::all();
-        return view('roles.index', compact('roles'));
-    }
-
+     public function index()
+     {
+         $roles = Role::with('permissions')->get();
+         return view('roles.index', compact('roles'));
+     }
     /**
      * Mostrar el formulario para crear un nuevo rol.
      */

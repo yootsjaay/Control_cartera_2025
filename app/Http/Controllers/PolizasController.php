@@ -45,6 +45,7 @@ class PolizasController extends Controller
         $seguros   = Seguro::all();
         $polizas   = Poliza::all();
         return view('polizas.create', compact('clientes', 'companias', 'seguros', 'polizas'));
+        dd("llegaste al metodo create");
     }
 
     public function obtenerRecursos(Request $request)
@@ -144,7 +145,29 @@ class PolizasController extends Controller
 
         return redirect()->route('polizas.index')->with('delete', 'Póliza eliminada correctamente.');
     }
-
+    public function renovaciones()
+    {
+        $polizas = Poliza::where('renovada', '<', now())->get(); // Ejemplo
+        return view('polizas.renovaciones', compact('polizas'));
+    }
+    
+    public function vencidas()
+    {
+        $polizas = Poliza::where('fecha_vencimiento', '<', now())->get(); // Ajusta según tu modelo
+        return view('polizas.vencidas', compact('polizas'));
+    }
+    
+    public function pendientes()
+    {
+        $polizas = Poliza::where('estado', 'pendiente')->get(); // Ajusta según tu modelo
+        return view('polizas.pendientes', compact('polizas'));
+    }
+    
+    public function archivos()
+    {
+        $archivos = Poliza::all(); // O una lógica específica para archivos
+        return view('polizas.archivos', compact('archivos'));
+    }
 
   
 }

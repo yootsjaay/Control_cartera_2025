@@ -5,72 +5,69 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\PolizasController;
 use App\Http\Controllers\CompaniasController;
 use App\Http\Controllers\SegurosRamoController;
+use App\Http\Controllers\ClientesController;
+use App\Http\Controllers\ReportesController;
+use App\Http\Controllers\RoleController;
 
-// Redirección inicial
 Route::redirect('/', '/login');
 
-// Grupo de autenticación y verificación
 Route::middleware(['auth', 'verified'])->group(function () {
-    // Dashboard
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
-
-    // Perfil de usuario (acceso para todos los usuarios autenticados)
+    Route::get('/dashboard', fn() => view('dashboard'))->name('dashboard');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/obtener-recursos', [PolizasController::class, 'obtenerRecursos'])->name('polizas.recursos');
 
-    // Ruta compartida para recursos (acceso para todos los usuarios autenticados)
-    Route::get('/obtener-recursos', [PolizasController::class, 'obtenerRecursos']);
-
-    // Gestión de Usuarios
+    // Usuarios (ajustado para coincidir con la carpeta 'user')
     Route::prefix('usuarios')->middleware('permission:ver usuarios')->group(function () {
-        Route::get('/', [UserController::class, 'index'])->name('usuarios.index');
-        
+        Route::get('/', [UserController::class, 'index'])->name('user.index');
         Route::middleware('permission:crear usuarios')->group(function () {
-            Route::get('/crear', [UserController::class, 'create'])->name('usuarios.create');
-            Route::post('/', [UserController::class, 'store'])->name('usuarios.store');
+            Route::get('/create', [UserController::class, 'create'])->name('user.create');
+            Route::post('/', [UserController::class, 'store'])->name('user.store');
         });
-
         Route::middleware('permission:editar usuarios')->group(function () {
-            Route::get('/{usuario}/editar', [UserController::class, 'edit'])->name('usuarios.edit');
-            Route::patch('/{usuario}', [UserController::class, 'update'])->name('usuarios.update');
+            Route::get('/{usuario}/editar', [UserController::class, 'edit'])->name('user.edit');
+            Route::patch('/{usuario}', [UserController::class, 'update'])->name('user.update');
         });
-
         Route::middleware('permission:eliminar usuarios')->group(function () {
-            Route::delete('/{usuario}', [UserController::class, 'destroy'])->name('usuarios.destroy');
+            Route::delete('/{usuario}', [UserController::class, 'destroy'])->name('user.destroy');
         });
     });
 
-    // Gestión de Pólizas
+    // Pólizas (corregido el prefijo para 'create')
     Route::prefix('polizas')->group(function () {
-        // Acceso básico
         Route::middleware('permission:ver pólizas')->group(function () {
             Route::get('/', [PolizasController::class, 'index'])->name('polizas.index');
             Route::get('/{poliza}', [PolizasController::class, 'show'])->name('polizas.show');
+            Route::get('/renovaciones', [PolizasController::class, 'renovaciones'])->name('polizas.renovaciones');
+            Route::get('/vencidas', [PolizasController::class, 'vencidas'])->name('polizas.vencidas')->middleware('permission:pólizas vencidas');
+            Route::get('/pendientes', [PolizasController::class, 'pendientes'])->name('polizas.pendientes')->middleware('permission:pólizas pendientes');
         });
-
-        // Creación
         Route::middleware('permission:crear pólizas')->group(function () {
-            Route::get('/create', [PolizasController::class, 'create'])->name('polizas.create');
+            Route::get('/create', [PolizasController::class, 'create'])->name('polizas.create'); // Corregido de 'polizas/create' a '/create'
             Route::post('/', [PolizasController::class, 'store'])->name('polizas.store');
         });
-
-        // Edición
         Route::middleware('permission:editar pólizas')->group(function () {
             Route::get('/{poliza}/editar', [PolizasController::class, 'edit'])->name('polizas.edit');
             Route::patch('/{poliza}', [PolizasController::class, 'update'])->name('polizas.update');
         });
-
-        // Eliminación
         Route::middleware('permission:eliminar pólizas')->group(function () {
             Route::delete('/{poliza}', [PolizasController::class, 'destroy'])->name('polizas.destroy');
         });
-
-        // Funcionalidades especiales
-        Route::middleware('permission:subir archivos de pólizas')->post('/subir-archivo', [PolizasController::class, 'subirArchivo'])->name('polizas.subir-archivo');
+        Route::middleware('permission:subir archivos de pólizas')->group(function () {
+            Route::get('/archivos', [PolizasController::class, 'archivos'])->name('polizas.archivos');
+            Route::post('/subir-archivo', [PolizasController::class, 'subirArchivo'])->name('polizas.subir-archivo');
+        });
         Route::middleware('permission:renovacion de pólizas')->post('/{poliza}/renovar', [PolizasController::class, 'renovar'])->name('polizas.renovar');
+    });
+
+    // Clientes
+    Route::prefix('clientes')->middleware('permission:ver clientes')->group(function () {
+        Route::get('/', [ClientesController::class, 'index'])->name('clientes.index');
+        Route::middleware('permission:crear clientes')->group(function () {
+            Route::get('/create', [ClientesController::class, 'create'])->name('clientes.create');
+            Route::post('/', [ClientesController::class, 'store'])->name('clientes.store');
+        });
     });
 
     // Módulo administrativo
@@ -82,16 +79,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Reportes
     Route::prefix('reportes')->middleware('permission:ver reportes')->group(function () {
         Route::get('/', [ReportesController::class, 'index'])->name('reportes.index');
-        
-        Route::middleware('permission:crear reportes')->group(function () {
-            Route::get('/generar', [ReportesController::class, 'create'])->name('reportes.create');
-            Route::post('/', [ReportesController::class, 'store'])->name('reportes.store');
-        });
-
-        Route::middleware('permission:exportar reportes')->get('/exportar', [ReportesController::class, 'exportar'])->name('reportes.exportar');
-        Route::middleware('permission:imprimir reportes')->get('/imprimir', [ReportesController::class, 'imprimir'])->name('reportes.imprimir');
+        Route::get('/exportar', [ReportesController::class, 'exportar'])->name('reportes.exportar')->middleware('permission:exportar reportes');
+        Route::get('/estadisticas', [ReportesController::class, 'estadisticas'])->name('reportes.estadisticas');
     });
+
+    // Roles
+    Route::prefix('roles')->middleware('permission:ver roles y permisos')->group(function () {
+        Route::get('/', [RoleController::class, 'index'])->name('roles.index');
+    });
+    
+    
 });
 
-// Autenticación
 require __DIR__.'/auth.php';
