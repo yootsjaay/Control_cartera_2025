@@ -37,16 +37,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Pólizas (corregido el prefijo para 'create')
     Route::prefix('polizas')->group(function () {
         Route::middleware('permission:ver pólizas')->group(function () {
+            
             Route::get('/', [PolizasController::class, 'index'])->name('polizas.index');
+            Route::middleware('permission:crear pólizas')->group(function () {
+                Route::get('/create', [PolizasController::class, 'create'])->name('polizas.create'); // Corregido de 'polizas/create' a '/create'
+                Route::post('/', [PolizasController::class, 'store'])->name('polizas.store');
+            }); 
             Route::get('/{poliza}', [PolizasController::class, 'show'])->name('polizas.show');
             Route::get('/renovaciones', [PolizasController::class, 'renovaciones'])->name('polizas.renovaciones');
             Route::get('/vencidas', [PolizasController::class, 'vencidas'])->name('polizas.vencidas')->middleware('permission:pólizas vencidas');
             Route::get('/pendientes', [PolizasController::class, 'pendientes'])->name('polizas.pendientes')->middleware('permission:pólizas pendientes');
         });
-        Route::middleware('permission:crear pólizas')->group(function () {
-            Route::get('/create', [PolizasController::class, 'create'])->name('polizas.create'); // Corregido de 'polizas/create' a '/create'
-            Route::post('/', [PolizasController::class, 'store'])->name('polizas.store');
-        });
+       
         Route::middleware('permission:editar pólizas')->group(function () {
             Route::get('/{poliza}/editar', [PolizasController::class, 'edit'])->name('polizas.edit');
             Route::patch('/{poliza}', [PolizasController::class, 'update'])->name('polizas.update');
@@ -86,6 +88,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Roles
     Route::prefix('roles')->middleware('permission:ver roles y permisos')->group(function () {
         Route::get('/', [RoleController::class, 'index'])->name('roles.index');
+        Route::get('/crear', [RoleController::class, 'create'])->name('roles.create');
+        Route::post('/', [RoleController::class, 'store'])->name('roles.store');
     });
     
     
