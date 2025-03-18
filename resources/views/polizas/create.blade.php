@@ -33,7 +33,7 @@
 
     <!-- Formulario de carga -->
     <div class="row">
-        <div class="col-lg-6 mx-auto">
+        <div class="col-lg-8 mx-auto">
             <div class="card shadow">
                 <div class="card-header bg-primary text-white">
                     <h3 class="card-title">Subir Póliza</h3>
@@ -43,7 +43,7 @@
                         @csrf
 
                         <!-- Selección de Compañía -->
-                        <div class="mb-3">
+                        <div class="mb-4">
                             <label for="compania_id" class="form-label">Compañía</label>
                             <select class="form-select" name="compania_id" id="compania_id" required>
                                 <option value="" disabled selected>Seleccione una compañía</option>
@@ -54,36 +54,57 @@
                         </div>
 
                         <!-- Selección de Tipo de Seguro -->
-                        <div class="mb-3">
+                        <div class="mb-4">
                             <label for="seguro_id" class="form-label">Seguro</label>
-                            <select class="form-select" name="seguro_id" id="seguro_id" required>
-                                <option value="" disabled selected>Seleccione un seguro</option>
-                                <!-- Opciones cargadas dinámicamente -->
-                            </select>
+                            <div class="position-relative">
+                                <select class="form-select" name="seguro_id" id="seguro_id" required disabled>
+                                    <option value="" disabled selected>Primero seleccione una compañía</option>
+                                </select>
+                                <div class="position-absolute top-50 end-0 translate-middle-y me-2">
+                                    <div id="loadingSeguros" class="spinner-border spinner-border-sm text-primary d-none" role="status">
+                                        <span class="visually-hidden">Cargando...</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Selección de Ramo -->
-                        <div class="mb-3">
+                        <div class="mb-4">
                             <label for="ramo_id" class="form-label">Ramo</label>
-                            <select class="form-select" name="ramo_id" id="ramo_id" required>
-                                <option value="" disabled selected>Seleccione un ramo</option>
-                                <!-- Opciones cargadas dinámicamente -->
-                            </select>
-                            <div id="loadingRamos" class="form-text text-muted d-none">Cargando ramos...</div>
+                            <div class="position-relative">
+                                <select class="form-select" name="ramo_id" id="ramo_id" required disabled>
+                                    <option value="" disabled selected>Primero seleccione un seguro</option>
+                                </select>
+                                <div class="position-absolute top-50 end-0 translate-middle-y me-2">
+                                    <div id="loadingRamos" class="spinner-border spinner-border-sm text-primary d-none" role="status">
+                                        <span class="visually-hidden">Cargando...</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                    
                         <!-- Subida de PDF -->
-                    <div class="mb-3">
-                        <label for="pdf" class="form-label">Subir Archivo(s) PDF</label>
-                        <input class="form-control" type="file" name="pdf[]" id="pdf" multiple required accept=".pdf">
-                        <div class="form-text">Puedes seleccionar varios archivos presionando <b>Ctrl</b> o <b>Shift</b> mientras seleccionas.</div>
-                        <small class="text-muted">Límite máximo de 10 archivos. Cada archivo no debe superar los 10MB.</small>
-                    </div>
+                        <div class="mb-4">
+                            <label for="pdf" class="form-label">Subir Archivo(s) PDF</label>
+                            <div class="file-drop-area" id="pdfDropZone">
+                                <span class="file-msg">Arrastra archivos aquí o haz clic para seleccionar</span>
+                                <input class="file-input" type="file" name="pdf[]" id="pdf" multiple required accept=".pdf">
+                            </div>
+                            <div class="form-text mt-2">
+                                <span class="fw-bold">Requisitos:</span>
+                                <ul class="mt-1">
+                                    <li>Máximo 10 archivos</li>
+                                    <li>Tamaño máximo por archivo: 10MB</li>
+                                    <li>Solo formato PDF</li>
+                                </ul>
+                            </div>
+                            <div id="filePreview" class="mt-3"></div>
+                        </div>
 
-
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Subir Pólizas</button>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-upload me-2"></i>Subir Pólizas
+                            </button>
                         </div>
                     </form>
                 </div>
@@ -94,8 +115,70 @@
 @endsection
 
 @section('css')
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-@stop
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+.file-drop-area {
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    background: #f8f9fa;
+}
+
+.file-drop-area:hover {
+    border-color: #0d6efd;
+    background: rgba(13, 110, 253, 0.05);
+}
+
+.file-drop-area.dragover {
+    border-color: #0d6efd;
+    background: rgba(13, 110, 253, 0.1);
+}
+
+.file-msg {
+    color: #6c757d;
+    font-size: 1rem;
+    pointer-events: none;
+}
+
+#filePreview .file-item {
+    background: #f1f3f5;
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.file-item .file-name {
+    max-width: 70%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #495057;
+}
+
+.file-item .file-size {
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.spinner-border {
+    width: 1.2rem;
+    height: 1.2rem;
+}
+</style>
+@endsection
 
 @section('js')  
 <script>
@@ -103,45 +186,130 @@ document.addEventListener('DOMContentLoaded', function () {
     const companiaSelect = document.getElementById('compania_id');
     const seguroSelect = document.getElementById('seguro_id');
     const ramoSelect = document.getElementById('ramo_id');
+    const loadingSeguros = document.getElementById('loadingSeguros');
     const loadingRamos = document.getElementById('loadingRamos');
-
-    function cargarRecursos(modelo, id, selectElement) {
-        selectElement.innerHTML = '<option value="" disabled selected>Cargando...</option>';
-
-        fetch(`/obtener-recursos?modelo=${modelo}&id=${id}`) // Usar query parameters
-            .then(response => response.json())
-            .then(data => {
-                selectElement.innerHTML = '<option value="" disabled selected>Seleccione un ' + modelo + '</option>';
-                data.forEach(item => {
-                    const option = document.createElement('option');
-                    option.value = item.id;
-                    option.textContent = (modelo === 'seguro') ? item.nombre : item.nombre_ramo; // Ajustar el texto
-                    selectElement.appendChild(option);
-                });
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                selectElement.innerHTML = '<option value="" disabled selected>Error al cargar</option>'; // Mostrar mensaje de error
+    
+    // Función para cargar recursos dinámicos
+    async function cargarRecursos(modelo, id, selectElement) {
+        try {
+            selectElement.disabled = true;
+            selectElement.innerHTML = '<option value="" disabled selected>Cargando...</option>';
+            
+            if (modelo === 'seguro') loadingSeguros.classList.remove('d-none');
+            if (modelo === 'ramo') loadingRamos.classList.remove('d-none');
+            
+            const response = await fetch(`/obtener-recursos?modelo=${modelo}&id=${id}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
             });
+            
+            if (!response.ok) throw new Error('Error en la respuesta');
+            
+            const data = await response.json();
+            
+            selectElement.innerHTML = '<option value="" disabled selected>Seleccione...</option>';
+            data.forEach(item => {
+                const option = new Option(
+                    modelo === 'seguro' ? item.nombre : item.nombre_ramo,
+                    item.id
+                );
+                selectElement.add(option);
+            });
+            
+            selectElement.disabled = false;
+        } catch (error) {
+            console.error('Error:', error);
+            selectElement.innerHTML = '<option value="" disabled selected>Error al cargar</option>';
+        } finally {
+            if (modelo === 'seguro') loadingSeguros.classList.add('d-none');
+            if (modelo === 'ramo') loadingRamos.classList.add('d-none');
+        }
     }
 
+    // Event listeners para selects
     companiaSelect.addEventListener('change', function () {
-        const companiaId = this.value;
-        cargarRecursos('seguro', companiaId, seguroSelect);
-        ramoSelect.innerHTML = '<option value="" disabled selected>Seleccione un ramo</option>'; // Reset ramos
+        if (!this.value) return;
+        seguroSelect.disabled = true;
+        ramoSelect.disabled = true;
+        ramoSelect.innerHTML = '<option value="" disabled selected>Seleccione un ramo</option>';
+        cargarRecursos('seguro', this.value, seguroSelect);
     });
 
     seguroSelect.addEventListener('change', function () {
-        const seguroId = this.value;
-        cargarRecursos('ramo', seguroId, ramoSelect);
+        if (!this.value) return;
+        ramoSelect.disabled = true;
+        cargarRecursos('ramo', this.value, ramoSelect);
     });
 
-    // Cargar seguros al cargar la página (si hay un valor preseleccionado en companiaSelect)
-    if (companiaSelect.value) {
-      cargarRecursos('seguro', companiaSelect.value, seguroSelect);
+    // Drag & Drop y vista previa
+    const dropZone = document.getElementById('pdfDropZone');
+    const fileInput = document.getElementById('pdf');
+    const filePreview = document.getElementById('filePreview');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    
+    ['dragover', 'dragenter'].forEach(event => {
+        dropZone.addEventListener(event, (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+    });
+
+    ['dragleave', 'dragend', 'drop'].forEach(event => {
+        dropZone.addEventListener(event, (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+        });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const files = e.dataTransfer.files;
+        fileInput.files = files;
+        handleFiles(files);
+    });
+
+    fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+
+    function handleFiles(files) {
+        filePreview.innerHTML = '';
+        const validFiles = Array.from(files).slice(0, 10);
+        
+        validFiles.forEach(file => {
+            if (file.type === 'application/pdf') {
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.innerHTML = `
+                    <span class="file-name">${file.name}</span>
+                    <span class="file-size">${(file.size / 1024 / 1024).toFixed(2)} MB</span>
+                `;
+                filePreview.appendChild(div);
+            }
+        });
     }
 
-
+    // Validación antes de enviar
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const MAX_FILES = 10;
+        const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+        const files = fileInput.files;
+        
+        if (files.length > MAX_FILES) {
+            e.preventDefault();
+            alert(`Máximo ${MAX_FILES} archivos permitidos`);
+            return;
+        }
+        
+        for (let file of files) {
+            if (file.size > MAX_SIZE) {
+                e.preventDefault();
+                alert(`El archivo ${file.name} excede el tamaño permitido`);
+                return;
+            }
+        }
+    });
 });
 </script>
-@stop
+@endsection

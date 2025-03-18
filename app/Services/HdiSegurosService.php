@@ -32,7 +32,7 @@ class HdiSegurosService implements SeguroServiceInterface
     protected $parser; // Inyecta el parser
 
     public function __construct(Parser $parser)
-    {
+    { 
         $this->parser = $parser;
     }
 
@@ -68,7 +68,6 @@ class HdiSegurosService implements SeguroServiceInterface
             throw new Exception("Error al procesar el PDF.");
         }
     }
-
 
     private function procesarTexto(string $text, Ramo $ramo): array
     {

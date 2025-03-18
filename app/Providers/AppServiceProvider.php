@@ -21,7 +21,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
 
-      /*  if(config('app.env') ==='local'){
+      /* if(config('app.env') ==='local'){
             $this->app['request']->server->set('HTTPS', true);
         }*/
         // Bind del parser PDF
