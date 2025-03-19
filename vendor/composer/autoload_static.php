@@ -363,13 +363,13 @@ class ComposerStaticInitcbed58921fb40526dd756235091dd357
         ),
         'Spatie\\LaravelIgnition\\' => 
         array (
-            0 => __DIR__ . '/..' . '/spatie/laravel-ignition/src',
-            1 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/laravel-ignition',
+            0 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/laravel-ignition',
+            1 => __DIR__ . '/..' . '/spatie/laravel-ignition/src',
         ),
         'Spatie\\Ignition\\' => 
         array (
-            0 => __DIR__ . '/..' . '/spatie/ignition/src',
-            1 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/ignition',
+            0 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/ignition',
+            1 => __DIR__ . '/..' . '/spatie/ignition/src',
         ),
         'Spatie\\FlareClient\\' => 
         array (
@@ -705,6 +705,7 @@ class ComposerStaticInitcbed58921fb40526dd756235091dd357
         'App\\Providers\\EventServiceProvider' => __DIR__ . '/../..' . '/app/Providers/EventServiceProvider.php',
         'App\\Providers\\RouteServiceProvider' => __DIR__ . '/../..' . '/app/Providers/RouteServiceProvider.php',
         'App\\Services\\BanorteSeguroService' => __DIR__ . '/../..' . '/app/Services/BanorteSeguroService.php',
+        'App\\Services\\GmxSeguroService' => __DIR__ . '/../..' . '/app/Services/GmxSeguroService.php',
         'App\\Services\\HdiSegurosService' => __DIR__ . '/../..' . '/app/Services/HdiSegurosService.php',
         'App\\Services\\PolizaService' => __DIR__ . '/../..' . '/app/Services/PolizaService.php',
         'App\\Services\\SeguroServiceFactory' => __DIR__ . '/../..' . '/app/Services/SeguroServiceFactory.php',

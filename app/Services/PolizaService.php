@@ -69,14 +69,15 @@ class PolizaService
     {
         $datosExtraidos = $seguroService->extractToData($archivo, $seguro, $ramo);
         $requiredFields = ['rfc', 'numero_poliza', 'nombre_cliente', 'numero_agente', 'nombre_agente', 'total_pagar'];
-
+        
         foreach ($requiredFields as $field) {
             if (!isset($datosExtraidos[$field])) {
                 throw new Exception("El campo '$field' es requerido pero no se encontró en los datos extraídos.");
             }
         }
 
-        return $datosExtraidos;
+       return $datosExtraidos;
+     // dd($datosExtraidos);
     }
 
     protected function crearCliente(array $datosExtraidos): Cliente

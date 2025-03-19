@@ -61,6 +61,7 @@ return array(
     'App\\Providers\\EventServiceProvider' => $baseDir . '/app/Providers/EventServiceProvider.php',
     'App\\Providers\\RouteServiceProvider' => $baseDir . '/app/Providers/RouteServiceProvider.php',
     'App\\Services\\BanorteSeguroService' => $baseDir . '/app/Services/BanorteSeguroService.php',
+    'App\\Services\\GmxSeguroService' => $baseDir . '/app/Services/GmxSeguroService.php',
     'App\\Services\\HdiSegurosService' => $baseDir . '/app/Services/HdiSegurosService.php',
     'App\\Services\\PolizaService' => $baseDir . '/app/Services/PolizaService.php',
     'App\\Services\\SeguroServiceFactory' => $baseDir . '/app/Services/SeguroServiceFactory.php',
