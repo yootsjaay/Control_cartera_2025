@@ -90,6 +90,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', [RoleController::class, 'index'])->name('roles.index');
         Route::get('/crear', [RoleController::class, 'create'])->name('roles.create');
         Route::post('/', [RoleController::class, 'store'])->name('roles.store');
+        Route::middleware('permission:editar usuarios')->group(function () {
+            Route::get('/{roles}/editar', [UserController::class, 'edit'])->name('roles.edit');
+            Route::patch('/{roles}', [UserController::class, 'update'])->name('roles.update');
+        });
+        Route::middleware('permission:eliminar usuarios')->group(function () {
+            Route::delete('/{roles}', [UserController::class, 'destroy'])->name('roles.destroy');
+        });
     });
     
     

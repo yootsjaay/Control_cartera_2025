@@ -24,12 +24,19 @@ class BanorteSeguroService implements SeguroServiceInterface
 
     public function extractToData(UploadedFile $archivo, Seguro $seguro, Ramo $ramo): array
     {
-        $this->validarEntrada($archivo, $seguro, $ramo);
+        if ($seguro->compania->slug !== 'banorte-seguros') {
+            throw new InvalidArgumentException("El seguro seleccionado no pertenece a HDI.");
+        }
+
+        if ($ramo->id_seguros != $seguro->id) {
+            throw new InvalidArgumentException("El ramo seleccionado no corresponde al seguro proporcionado.");
+        }
 
         try {
-            $text = $this->extractText($archivo);
+            $text = $this->extractText($archivo); // Usa el nuevo método extractText
             \Log::info("Texto extraído:", ['data' => substr($text, 0, 500)]);
             return $this->procesarTexto($text, $ramo);
+           //dd($text);
         } catch (Exception $e) {
             \Log::error("Error al procesar el PDF: " . $e->getMessage());
             throw new InvalidArgumentException("No se pudo procesar el archivo PDF: " . $e->getMessage());
