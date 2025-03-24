@@ -20,55 +20,59 @@ class PolizasController extends Controller
     }
 
     public function index()
-    {
-        // Cargar las pólizas con las relaciones necesarias
-        $polizas = Poliza::with(['compania', 'cliente', 'seguro.ramos'])->paginate(10);
+{
+    // Cargar pólizas con relaciones anidadas
+    $polizas = Poliza::with([
+        'cliente',
+        'compania',
+        'seguro.ramo' // Ahora la relación está definida correctamente
+    ])->paginate(10);
+
+
+    // Datos para filtros (optimizados)
+    $companias = Compania::select('id', 'nombre_compania')->get();
+    $seguros = Seguro::with('ramo:id,nombre_ramo')->get(['id', 'nombre_seguro', 'ramo_id']);
     
-        // Obtener compañías y seguros para filtros (solo id y nombre)
-        $companias = Compania::all();
-        $seguros =Seguro::all();
-    
-        // Obtener tipos únicos de seguros
-        $tipos = Seguro::distinct()->pluck('nombre');
-    
-        return view('polizas.index', [
-            'polizas'   => $polizas,
-            'companias' => $companias,
-            'seguros'   => $seguros,
-            'tipos'     => $tipos, // Pasar solo los tipos de seguros a la vista
-        ]);
-    }
+    return view('polizas.index', [
+        'polizas' => $polizas,
+        'companias' => $companias,
+        'seguros' => $seguros,
+        'ramos' => Ramo::all(['id', 'nombre_ramo']) // Para filtros adicionales
+    ]);
+}
     public function create()
     {
-        $clientes  = Cliente::all();
-        $companias = Compania::all();
-        $seguros   = Seguro::all();
-        $polizas   = Poliza::all();
-        return view('polizas.create', compact('clientes', 'companias', 'seguros', 'polizas'));
-        dd("llegaste al metodo create");
+        return view('polizas.create', [
+            'clientes' => Cliente::select('id', 'nombre_completo')->get(),
+            'companias' => Compania::select('id', 'nombre_compania')->get(),
+            'seguros' => Seguro::with('ramo:id,nombre_ramo')->get(['id', 'nombre_seguro', 'ramo_id']),
+            'ramos' => Ramo::all(['id', 'nombre_ramo']) // Opcional, si necesitas selección directa
+        ]);
     }
 
     public function obtenerRecursos(Request $request)
-    {
-        $request->validate([
-            'modelo' => 'required|in:seguro,ramo',
-            'id' => 'required|integer',
-        ]);
+{
+    $request->validate([
+        'modelo' => 'required|in:seguro,ramo',
+        'id' => 'required|integer',
+    ]);
 
-        $modelo = $request->input('modelo');
-        $id = $request->input('id');
+    try {
+        $resultados = match($request->modelo) {
+            'seguro' => Seguro::where('ramo_id', $request->id)
+                          ->get(['id', 'nombre_seguro as nombre']),
+            
+            'ramo' => Ramo::whereHas('seguros', fn($q) => $q->where('compania_id', $request->id))
+                      ->get(['id', 'nombre_ramo as nombre'])
+        };
 
-        try {
-            $resultados = ($modelo === 'seguro')
-                ? Seguro::where('compania_id', $id)->get(['id', 'nombre'])
-                : Ramo::where('id_seguros', $id)->get(['id', 'nombre_ramo']);
+        return response()->json($resultados);
 
-            return response()->json($resultados);
-        } catch (Exception $e) {
-            Log::error("Error al cargar {$modelo}s: " . $e->getMessage());
-            return response()->json(['error' => "Error al cargar {$modelo}s."], 500);
-        }
+    } catch (Exception $e) {
+        Log::error("Error al cargar recursos: " . $e->getMessage());
+        return response()->json(['error' => 'Error al cargar datos'], 500);
     }
+}
 
     public function store(StorePolizaRequest $request)
     {

@@ -14,14 +14,11 @@ use Illuminate\Database\Eloquent\Model;
  * Class Seguro
  * 
  * @property int $id
- * @property int $compania_id
- * @property string $nombre
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
- * @property Compania $compania
+ * @property Collection|Compania[] $companias
  * @property Collection|Poliza[] $polizas
- * @property Collection|Ramo[] $ramos
  *
  * @package App\Models
  */
@@ -29,27 +26,21 @@ class Seguro extends Model
 {
 	protected $table = 'seguros';
 
-	protected $casts = [
-		'compania_id' => 'int'
-	];
-
-	protected $fillable = [
-		'compania_id',
-		'nombre'
-	];
-
-	public function compania()
-	{
-		return $this->belongsTo(Compania::class);
-	}
+	
 
 	public function polizas()
 	{
 		return $this->hasMany(Poliza::class);
 	}
+	// Relación con Ramo (un Seguro pertenece a un Ramo)
+    public function ramo()
+    {
+        return $this->belongsTo(Ramo::class, 'ramo_id'); // Especifica la clave foránea
+    }
 
-	public function ramos()
-	{
-		return $this->hasMany(Ramo::class, 'id_seguros');
-	}
+    // Relación con Compañías (muchos a muchos)
+    public function companias()
+    {
+        return $this->belongsToMany(Compania::class, 'compania_seguro');
+    }
 }

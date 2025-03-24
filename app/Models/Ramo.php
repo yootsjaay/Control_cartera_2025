@@ -9,19 +9,15 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 
 /**
  * Class Ramo
  * 
  * @property int $id
  * @property string $nombre_ramo
- * @property string $slug
- * @property int $id_seguros
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
- * @property Seguro $seguro
  * @property Collection|Poliza[] $polizas
  *
  * @package App\Models
@@ -30,31 +26,12 @@ class Ramo extends Model
 {
 	protected $table = 'ramos';
 
-	protected $casts = [
-		'id_seguros' => 'int'
-	];
-
 	protected $fillable = [
-		'nombre_ramo',
-		'slug',
-		'id_seguros'
+		'nombre_ramo'
 	];
-
-	public function seguro()
-	{
-		return $this->belongsTo(Seguro::class, 'id_seguros');
-	}
 
 	public function polizas()
 	{
 		return $this->hasMany(Poliza::class);
-	}
-
-	protected static function boot(){
-		parent::boot();
-
-		static::creating(function ($ramo){
-			$ramo->slug =Str::slug($ramo->nombre_ramo);
-		});
 	}
 }

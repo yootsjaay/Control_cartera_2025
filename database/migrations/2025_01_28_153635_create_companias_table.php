@@ -13,9 +13,7 @@ return new class extends Migration
     {
         Schema::create('companias', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre',255);
-            $table->string('slug',255)->unique();
-            $table->string('clase',255);
+            $table->string('nombre_compania');
             $table->timestamps();
         });
     }

@@ -12,6 +12,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
 	use HasFactory, Notifiable, HasRoles;
+	protected $table = 'users';
 
 	protected $casts = [
 		'email_verified_at' => 'datetime'
@@ -25,8 +26,15 @@ class User extends Authenticatable
 	protected $fillable = [
 		'name',
 		'email',
+		'avatar',
+		'telefono',
 		'email_verified_at',
 		'password',
 		'remember_token'
 	];
+
+	public function polizas()
+	{
+		return $this->hasMany(Poliza::class);
+	}
 }

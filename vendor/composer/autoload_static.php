@@ -363,13 +363,13 @@ class ComposerStaticInitcbed58921fb40526dd756235091dd357
         ),
         'Spatie\\LaravelIgnition\\' => 
         array (
-            0 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/laravel-ignition',
-            1 => __DIR__ . '/..' . '/spatie/laravel-ignition/src',
+            0 => __DIR__ . '/..' . '/spatie/laravel-ignition/src',
+            1 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/laravel-ignition',
         ),
         'Spatie\\Ignition\\' => 
         array (
-            0 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/ignition',
-            1 => __DIR__ . '/..' . '/spatie/ignition/src',
+            0 => __DIR__ . '/..' . '/spatie/ignition/src',
+            1 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/ignition',
         ),
         'Spatie\\FlareClient\\' => 
         array (
@@ -684,18 +684,6 @@ class ComposerStaticInitcbed58921fb40526dd756235091dd357
         'App\\Http\\Requests\\StorePolizaRequest' => __DIR__ . '/../..' . '/app/Http/Requests/StorePolizaRequest.php',
         'App\\Http\\Requests\\StoreSeguroRequest' => __DIR__ . '/../..' . '/app/Http/Requests/StoreSeguroRequest.php',
         'App\\Jobs\\NotificarPolizasPorVencer' => __DIR__ . '/../..' . '/app/Jobs/NotificarPolizasPorVencer.php',
-        'App\\Models\\Agente' => __DIR__ . '/../..' . '/app/Models/Agente.php',
-        'App\\Models\\Cliente' => __DIR__ . '/../..' . '/app/Models/Cliente.php',
-        'App\\Models\\Compania' => __DIR__ . '/../..' . '/app/Models/Compania.php',
-        'App\\Models\\ModelHasPermission' => __DIR__ . '/../..' . '/app/Models/ModelHasPermission.php',
-        'App\\Models\\ModelHasRole' => __DIR__ . '/../..' . '/app/Models/ModelHasRole.php',
-        'App\\Models\\Permission' => __DIR__ . '/../..' . '/app/Models/Permission.php',
-        'App\\Models\\Poliza' => __DIR__ . '/../..' . '/app/Models/Poliza.php',
-        'App\\Models\\Ramo' => __DIR__ . '/../..' . '/app/Models/Ramo.php',
-        'App\\Models\\Role' => __DIR__ . '/../..' . '/app/Models/Role.php',
-        'App\\Models\\RoleHasPermission' => __DIR__ . '/../..' . '/app/Models/RoleHasPermission.php',
-        'App\\Models\\Seguro' => __DIR__ . '/../..' . '/app/Models/Seguro.php',
-        'App\\Models\\User' => __DIR__ . '/../..' . '/app/Models/User.php',
         'App\\Notifications\\InvoicePaid' => __DIR__ . '/../..' . '/app/Notifications/InvoicePaid.php',
         'App\\Notifications\\PolizaPorVencer' => __DIR__ . '/../..' . '/app/Notifications/PolizaPorVencer.php',
         'App\\Policies\\PolizaPolicy' => __DIR__ . '/../..' . '/app/Policies/PolizaPolicy.php',

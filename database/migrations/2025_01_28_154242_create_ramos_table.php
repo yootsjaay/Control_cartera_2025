@@ -13,9 +13,7 @@ return new class extends Migration
     {
         Schema::create('ramos', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre_ramo', 255);
-            $table->string('slug')->unique(); // Agrega la columna después de nombre_ramo
-            $table->foreignId('id_seguros')->constrained('seguros')->onDelete('cascade');
+            $table->string('nombre_ramo');
             $table->timestamps();
         });
     }
