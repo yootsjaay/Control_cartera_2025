@@ -7,12 +7,18 @@ use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use App\Models\Ramo;
+use App\Models\Compania;
+use App\Models\Seguro;
+use App\Models\CompaniaSeguro;
+
+
 
 class DatabaseSeeder extends Seeder
 {
     public function run()
     {
-        // Crear permisos
+       /* // Crear permisos
         $permisos = [
             'ver usuarios', 'crear usuarios', 'editar usuarios', 'eliminar usuarios',
             'ver pólizas', 'crear pólizas', 'editar pólizas', 'eliminar pólizas',
@@ -47,5 +53,13 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('password123'),
         ]);
         $normalUser->assignRole('usuario');
+    }*/
+    $this->call([
+        RamoSeeder::class,
+        CompaniaSeeder::class,
+        SeguroSeeder::class,
+        CompaniaSeguroSeeder::class,
+    ]);
+    
     }
 }

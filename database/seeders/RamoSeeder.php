@@ -15,9 +15,8 @@ class RamoSeeder extends Seeder
         $ramos = [
             ['nombre_ramo' => 'Vida'],
             ['nombre_ramo' => 'Daños'],
-            ['nombre_ramo' => 'Salud'],
-            ['nombre_ramo' => 'Accidentes'],
             ['nombre_ramo' => 'Accidentes y Enfermedades'],
+            ['nombre_ramo' => 'Accidentes'],
             ['nombre_ramo' => 'Automóviles']
         ];
         Ramo::insert($ramos);

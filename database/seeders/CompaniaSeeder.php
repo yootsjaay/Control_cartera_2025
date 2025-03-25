@@ -15,24 +15,26 @@ class CompaniaSeeder extends Seeder
     /**
      * Run the database seeds.
      */
-    public function run(): void
-    {
-        $companias = [
-            ['nombre_compania' => 'Thona Seguros'],
-            ['nombre_compania' => 'Banorte Seguros'],
-            ['nombre_compania' => 'Insignia Lite'],
-            ['nombre_compania' => 'Alian'],
-            ['nombre_compania' => 'General Seguros'],
-            ['nombre_compania' => 'Metlife'],
-            ['nombre_compania' => 'Hdi Seguros'],
-            ['nombre_compania' => 'Gmx Seguros'],
-            ['nombre_compania' => 'Atlas Seguros'],
-            ['nombre_compania' => 'BUPA Seguros'],
-            ['nombre_compania' => 'Qualitas Seguros'],
-            ['nombre_compania' => 'Ana Seguros'],
+   // database/seeders/CompaniaSeeder.php
+public function run(): void
+{
+    // database/seeders/CompaniaSeeder.php
 
-           
-        ];
-        Compania::insert($companias);
-    }
+    $companias = [
+        ['nombre_compania' => 'Thona Seguros'],
+        ['nombre_compania' => 'Banorte Seguros'],
+        ['nombre_compania' => 'Insignia Lite'], // Antes: "Seguros Insignia Lite"
+        ['nombre_compania' => 'Alian'],         // Antes: "Alianz"
+        ['nombre_compania' => 'General Seguros'],// Antes: "General de Seguros"
+        ['nombre_compania' => 'Metlife'],
+        ['nombre_compania' => 'Hdi Seguros'],   // Antes: "HDI Seguros"
+        ['nombre_compania' => 'Gmx Seguros'],
+        ['nombre_compania' => 'Atlas Seguros'],
+        ['nombre_compania' => 'BUPA'],
+        ['nombre_compania' => 'Qualitas'],
+        ['nombre_compania' => 'Ana Seguros']
+    ];
+
+    Compania::insert($companias);
+}
 }

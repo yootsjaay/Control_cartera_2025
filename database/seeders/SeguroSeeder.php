@@ -15,23 +15,81 @@ class SeguroSeeder extends Seeder
      */
     public function run(): void
     {
-        $seguros = [
-            ['nombre_seguro' => 'Seguro de Vida Individual', 'ramo_id' => 1],
-            ['nombre_seguro' => 'Grupo Vida', 'ramo_id' => 1],
-            ['nombre_seguro' => 'Seguro de Inversion', 'ramo_id' => 1],
-            ['nombre_seguro' => 'De Retiro', 'ramo_id' => 1],
-            ['nombre_seguro' => 'Seguro De Daños', 'ramo_id' => 2],
-            ['nombre_seguro' => 'Empresa', 'ramo_id' => 2],
-            ['nombre_seguro' => 'Casa', 'ramo_id' => 2],
-            ['nombre_seguro' => 'Transporte', 'ramo_id' => 2],
-            ['nombre_seguro' => 'Gastos Medicos Mayores', 'ramo_id' => 3],
-            ['nombre_seguro' => 'AP', 'ramo_id' => 3],
-            ['nombre_seguro' => 'Accidentes Personales', 'ramo_id' => 4],
-            ['nombre_seguro' => 'Escolares', 'ramo_id' => 4],
-            ['nombre_seguro' => 'Automoviles', 'ramo_id' => 6],
-            ['nombre_seguro' => 'Camiones', 'ramo_id' => 6],
-            ['nombre_seguro' => 'Tractos', 'ramo_id' => 6],
-        ];
-        Seguro::insert($seguros);
+         // Obtener ramos
+         $vida = Ramo::where('nombre_ramo', 'Vida')->first();
+         $danos = Ramo::where('nombre_ramo', 'Daños')->first();
+         $salud = Ramo::where('nombre_ramo', 'Accidentes y Enfermedades')->first();
+         $accidentes = Ramo::where('nombre_ramo', 'Accidentes')->first();
+         $automoviles = Ramo::where('nombre_ramo', 'Automóviles')->first();
+ 
+        // Seguros de Vida
+        Seguro::create([
+            'nombre_seguro' => 'Seguro de Vida Individual',
+            'ramo_id' => $vida->id
+        ]);
+
+        Seguro::create([
+            'nombre_seguro' => 'Grupo Vida',
+            'ramo_id' => $vida->id
+        ]);
+
+        Seguro::create([
+            'nombre_seguro' => 'Seguro de Inversión',
+            'ramo_id' => $vida->id
+        ]);
+
+        Seguro::create([
+            'nombre_seguro' => 'Seguro de Retiro',
+            'ramo_id' => $vida->id
+        ]);
+
+        // Seguros de Daños
+        Seguro::create([
+            'nombre_seguro' => 'Seguro de Daños a Empresa',
+            'ramo_id' => $danos->id
+        ]);
+
+        Seguro::create([
+            'nombre_seguro' => 'Seguro de Daños a Casa',
+            'ramo_id' => $danos->id
+        ]);
+
+        Seguro::create([
+            'nombre_seguro' => 'Seguro de Transporte',
+            'ramo_id' => $danos->id
+        ]);
+
+        // Seguros de Salud
+        Seguro::create([
+            'nombre_seguro' => 'Gastos Médicos Mayores',
+            'ramo_id' => $salud->id
+        ]);
+
+        // Seguros de Accidentes
+        Seguro::create([
+            'nombre_seguro' => 'Accidentes Personales',
+            'ramo_id' => $accidentes->id
+        ]);
+
+        Seguro::create([
+            'nombre_seguro' => 'Accidentes Escolares',
+            'ramo_id' => $accidentes->id
+        ]);
+
+        // Seguros de Automóviles
+        Seguro::create([
+            'nombre_seguro' => 'Seguro para Autos Pickup',
+            'ramo_id' => $automoviles->id
+        ]);
+
+        Seguro::create([
+            'nombre_seguro' => 'Seguro para Camiones',
+            'ramo_id' => $automoviles->id
+        ]);
+
+        Seguro::create([
+            'nombre_seguro' => 'Seguro para Tractos',
+            'ramo_id' => $automoviles->id
+        ]);
     }
 }
