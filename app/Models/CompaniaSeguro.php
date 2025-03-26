@@ -6,13 +6,17 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 /**
  * Class CompaniaSeguro
  * 
- * @property int $compania_id
+ * @property int $id
  * @property int $seguro_id
+ * @property int $compania_id
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  * 
  * @property Compania $compania
  * @property Seguro $seguro
@@ -22,12 +26,15 @@ use Illuminate\Database\Eloquent\Model;
 class CompaniaSeguro extends Model
 {
 	protected $table = 'compania_seguro';
-	public $incrementing = false;
-	public $timestamps = false;
 
 	protected $casts = [
-		'compania_id' => 'int',
-		'seguro_id' => 'int'
+		'seguro_id' => 'int',
+		'compania_id' => 'int'
+	];
+
+	protected $fillable = [
+		'seguro_id',
+		'compania_id'
 	];
 
 	public function compania()

@@ -23,15 +23,9 @@ use Illuminate\Database\Eloquent\Model;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property int $cliente_id
- * @property int $compania_id
- * @property int $seguro_id
- * @property int $ramo_id
  * @property int $user_id
  * 
  * @property Cliente $cliente
- * @property Compania $compania
- * @property Ramo $ramo
- * @property Seguro $seguro
  * @property User $user
  *
  * @package App\Models
@@ -45,9 +39,6 @@ class Poliza extends Model
 		'vigencia_fin' => 'datetime',
 		'total_a_pagar' => 'float',
 		'cliente_id' => 'int',
-		'compania_id' => 'int',
-		'seguro_id' => 'int',
-		'ramo_id' => 'int',
 		'user_id' => 'int'
 	];
 
@@ -60,30 +51,12 @@ class Poliza extends Model
 		'archivo_pdf',
 		'status',
 		'cliente_id',
-		'compania_id',
-		'seguro_id',
-		'ramo_id',
 		'user_id'
 	];
 
 	public function cliente()
 	{
 		return $this->belongsTo(Cliente::class);
-	}
-
-	public function compania()
-	{
-		return $this->belongsTo(Compania::class);
-	}
-
-	public function ramo()
-	{
-		return $this->belongsTo(Ramo::class);
-	}
-
-	public function seguro()
-	{
-		return $this->belongsTo(Seguro::class);
 	}
 
 	public function user()

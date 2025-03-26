@@ -8,11 +8,8 @@ use Spatie\Permission\Models\Permission;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use App\Models\Ramo;
-use App\Models\Compania;
 use App\Models\Seguro;
-use App\Models\CompaniaSeguro;
-
-
+use App\Models\Compania;
 
 class DatabaseSeeder extends Seeder
 {
@@ -54,12 +51,53 @@ class DatabaseSeeder extends Seeder
         ]);
         $normalUser->assignRole('usuario');
     }*/
-    $this->call([
-        RamoSeeder::class,
-        CompaniaSeeder::class,
-        SeguroSeeder::class,
-        CompaniaSeguroSeeder::class,
-    ]);
+
+
+    $ramos = [
+        'Vida' => [
+            'seguros' => ['Seguro de Vida Individual', 'Grupo vida', 'Seguro de inversión', 'De retiro'],
+            'companias' => ['Thona Seguro', 'Banorte Seguros', 'Insignia Lite', 'Alianz', 'Metlife', 'General de Seguros']
+        ],
+        'Daños' => [
+            'seguros' => ['Seguro de Daños empresa', 'Seguro de casa', 'Seguro de transporte'],
+            'companias' => ['HDI Seguro', 'Banorte Seguros', 'Gmx Seguros', 'General de Seguros', 'Atlas Seguros']
+        ],
+        'Accidentes y enfermedades' => [
+            'seguros' => ['Gastos Médicos Mayores', 'Accidentes Personales'],
+            'companias' => ['HDI Seguro', 'Banorte Seguros', 'Metlife', 'Alianz', 'BUPA', 'Thona Seguros']
+        ],
+        'Accidentes' => [
+            'seguros' => ['Accidentes Personales', 'Escolares'],
+            'companias' => ['HDI Seguros', 'Banorte Seguros', 'Thona Seguros', 'General de Seguros', 'Atlas Seguros']
+        ],
+        'Automóviles' => [
+            'seguros' => ['Autos pickup', 'Camiones', 'Tractos'],
+            'companias' => ['HDI Seguros', 'Banorte Seguros', 'General de Seguros', 'Atlas Seguros', 'Qualitas', 'Ana Seguros']
+        ]
+    ];
+
     
+    
+   // Crear compañías
+   $companiasInstances = [];
+   foreach (array_unique(array_merge(...array_column($ramos, 'companias'))) as $nombre) {
+       $companiasInstances[$nombre] = Compania::create(['nombre' => $nombre]);
+   }
+
+   // Crear ramos, seguros y asignar compañías correctamente
+   foreach ($ramos as $ramoNombre => $data) {
+       $ramo = Ramo::create(['nombre' => $ramoNombre]);
+
+       foreach ($data['seguros'] as $seguroNombre) {
+           $seguro = Seguro::create([
+               'nombre' => $seguroNombre,
+               'ramo_id' => $ramo->id
+           ]);
+
+           // Asignar compañías específicas a cada seguro
+           $companiaIds = array_map(fn($nombre) => $companiasInstances[$nombre]->id, $data['companias']);
+           $seguro->companias()->attach($companiaIds);
+    }
+}
     }
 }

@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('seguros', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
+            $table->string('nombre'); // Nombre del seguro
+            $table->foreignId('ramo_id')->constrained('ramos')->onDelete('cascade'); // Relación con ramos
             $table->timestamps();
         });
     }

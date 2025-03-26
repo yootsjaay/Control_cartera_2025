@@ -14,19 +14,38 @@ use Illuminate\Database\Eloquent\Model;
  * Class Seguro
  * 
  * @property int $id
+ * @property string $nombre
+ * @property int $ramo_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
+ * @property Ramo $ramo
  * @property Collection|Compania[] $companias
- * @property Collection|Poliza[] $polizas
  *
  * @package App\Models
  */
 class Seguro extends Model
 {
-    public function ramos()
-    {
-        return $this->hasMany(Ramo::class);
-    }
+	protected $table = 'seguros';
 
+	protected $casts = [
+		'ramo_id' => 'int'
+	];
+
+	protected $fillable = [
+		'nombre',
+		'ramo_id'
+	];
+
+	public function ramo()
+	{
+		return $this->belongsTo(Ramo::class);
+	}
+
+	public function companias()
+	{
+		return $this->belongsToMany(Compania::class)
+					->withPivot('id')
+					->withTimestamps();
+	}
 }

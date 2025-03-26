@@ -14,24 +14,30 @@ use Illuminate\Database\Eloquent\Model;
  * Class Ramo
  * 
  * @property int $id
- * @property string $nombre_ramo
+ * @property string $nombre
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
- * @property Collection|Poliza[] $polizas
+ * @property Collection|Seguro[] $seguros
  *
  * @package App\Models
  */
 class Ramo extends Model
 {
-    public function seguro()
-    {
-        return $this->belongsTo(Seguro::class);
-    }
+	protected $table = 'ramos';
 
-    public function compañías()
-    {
-        return $this->belongsToMany(Compañía::class, 'compañía_ramo');
-    }
+	protected $fillable = [
+		'nombre'
+	];
+
+	public function seguros()
+	{
+		return $this->hasMany(Seguro::class);
+	}
+	public function companias()
+{
+    return $this->belongsToMany(Compania::class, 'compania_ramo'); // Asegúrate de usar el nombre correcto de la tabla pivot
+}
+
 
 }

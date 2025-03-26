@@ -11,18 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('compañías', function (Blueprint $table) {
+        Schema::create('ramos', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre');
+            $table->string('nombre'); // Nombre del ramo (Vida, Daños, etc.)
             $table->timestamps();
         });
     }
-
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::dropIfExists('companias');
+        Schema::dropIfExists('ramos');
     }
 };

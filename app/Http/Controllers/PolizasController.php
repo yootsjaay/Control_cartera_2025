@@ -20,57 +20,61 @@ class PolizasController extends Controller
     }
 
     public function index()
-{
-    // Cargar pólizas con relaciones anidadas
-    $polizas = Poliza::with([
-        'cliente',
-        'compania',
-        'seguro.ramo' // Ahora la relación está definida correctamente
-    ])->paginate(10);
+    {
+        // Cargar pólizas con relaciones anidadas
+        $polizas = Poliza::with([
+            'cliente',
+            'compania',
+            'seguro.ramo' 
+        ])->paginate(10);
 
+        // Datos para filtros optimizados
+        return view('polizas.index', [
+            'polizas' => $polizas,
+            'companias' => Compania::select('id', 'nombre')->get(),
+            'seguros' => Seguro::with('ramo:id,nombre')->get(['id', 'nombre', 'ramo_id']),
+            'ramos' => Ramo::select('id', 'nombre')->get()
+        ]);
+    }
 
-    // Datos para filtros (optimizados)
-    $companias = Compania::select('id', 'nombre_compania')->get();
-    $seguros = Seguro::with('ramo:id,nombre_ramo')->get(['id', 'nombre_seguro', 'ramo_id']);
-    
-    return view('polizas.index', [
-        'polizas' => $polizas,
-        'companias' => $companias,
-        'seguros' => $seguros,
-        'ramos' => Ramo::all(['id', 'nombre_ramo']) // Para filtros adicionales
-    ]);
-}
     public function create()
     {
         return view('polizas.create', [
             'clientes' => Cliente::select('id', 'nombre_completo')->get(),
-            'companias' => Compania::select('id', 'nombre_compania')->get(),
-            'seguros' => Seguro::with('ramo:id,nombre_ramo')->get(['id', 'nombre_seguro', 'ramo_id']),
-            'ramos' => Ramo::all(['id', 'nombre_ramo']) // Opcional, si necesitas selección directa
+            'companias' => Compania::select('id', 'nombre')->get(),
+            'seguros' => Seguro::with('ramo:id,nombre')->get(['id', 'nombre', 'ramo_id']),
+            'ramos' => Ramo::select('id', 'nombre')->get()
         ]);
     }
 
     public function obtenerRecursos(Request $request)
 {
-    $request->validate([
+    $validated = $request->validate([
         'modelo' => 'required|in:seguro,ramo',
         'id' => 'required|integer',
     ]);
 
     try {
-        $resultados = match($request->modelo) {
-            'seguro' => Seguro::where('ramo_id', $request->id)
-                          ->get(['id', 'nombre_seguro as nombre']),
-            
-            'ramo' => Ramo::whereHas('seguros', fn($q) => $q->where('compania_id', $request->id))
-                      ->get(['id', 'nombre_ramo as nombre'])
-        };
+        if ($validated['modelo'] === 'seguro') {
+            // Obtener seguros por ramo_id (relación directa)
+            $resultados = Seguro::where('ramo_id', $validated['id'])
+                             ->get(['id', 'nombre', 'ramo_id']);
+        } else {
+            // Obtener ramos que tienen seguros asociados a la compañía
+            $resultados = Ramo::whereHas('seguros.companias', function($q) use ($validated) {
+                            $q->where('companias.id', $validated['id']);
+                         })
+                         ->get(['id', 'nombre']);
+        }
 
         return response()->json($resultados);
 
     } catch (Exception $e) {
-        Log::error("Error al cargar recursos: " . $e->getMessage());
-        return response()->json(['error' => 'Error al cargar datos'], 500);
+        Log::error("Error en obtenerRecursos: ".$e->getMessage());
+        return response()->json([
+            'error' => 'Error al cargar datos',
+            'details' => config('app.debug') ? $e->getMessage() : null
+        ], 500);
     }
 }
 
