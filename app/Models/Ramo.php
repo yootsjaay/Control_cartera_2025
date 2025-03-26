@@ -24,14 +24,14 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Ramo extends Model
 {
-	protected $table = 'ramos';
+    public function seguro()
+    {
+        return $this->belongsTo(Seguro::class);
+    }
 
-	protected $fillable = [
-		'nombre_ramo'
-	];
+    public function compañías()
+    {
+        return $this->belongsToMany(Compañía::class, 'compañía_ramo');
+    }
 
-	public function polizas()
-	{
-		return $this->hasMany(Poliza::class);
-	}
 }

@@ -24,23 +24,9 @@ use Illuminate\Database\Eloquent\Model;
  */
 class Seguro extends Model
 {
-	protected $table = 'seguros';
-
-	
-
-	public function polizas()
-	{
-		return $this->hasMany(Poliza::class);
-	}
-	// Relación con Ramo (un Seguro pertenece a un Ramo)
-    public function ramo()
+    public function ramos()
     {
-        return $this->belongsTo(Ramo::class, 'ramo_id'); // Especifica la clave foránea
+        return $this->hasMany(Ramo::class);
     }
 
-    // Relación con Compañías (muchos a muchos)
-    public function companias()
-    {
-        return $this->belongsToMany(Compania::class, 'compania_seguro');
-    }
 }
