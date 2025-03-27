@@ -13,21 +13,7 @@ use DateTime;
 
 class HdiSegurosService implements SeguroServiceInterface
 {
-    // Definir constantes para los slugs de los ramos
-    const RAMO_MEDICA_TOTAL_PLUS = 'medica-total-plus';
-    const RAMO_VEHICULOS = 'vehiculos-residentes-hdi-autos-y-pick-ups';
-    const RAMO_CAMIONES_HASTA_3_5 = 'camiones-hasta-35-toneladas';
-    const RAMO_CAMIONES_MASDE_3_5 = 'camiones-mas-de-35-toneladas';
-    const RAMO_HDI_CASA= 'hdi-en-mi-casa';
-    const RAMO_MEDICA_VITAL = 'medica-vital';
-    const RAMO_PAQUETE_FAMILIAR = 'paquete-familiar-todo-riesgo';
-    const RAMO_RESPONSABILIDAD_CIVIL_AGENTES= 'responsabilidad-civil-profesional-agentes';
-    const RAMO_HDI_EMPRESA= 'hdi-en-mi-empresa';
-    const RAMO_EQUIPO_MAQUINARIA= 'equipo-y-maquinaria-para-contratistas-agricultores-e-industriales';
-    const RAMO_TRANSPORTE_CARGA= 'transporte-de-carga-anual-a-declaracion-mensual';
-    const RAMO_RESPONSABILIDAD_CIVIL_VIAJERO ='responsabilidad-civil-viajero';
-    const RAMO_EMBARCACIONES= 'seguro-de-embarcaciones';
-
+  
 
     protected $parser; // Inyecta el parser
 

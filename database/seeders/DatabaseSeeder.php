@@ -56,26 +56,22 @@ class DatabaseSeeder extends Seeder
     $ramos = [
         'Vida' => [
             'seguros' => ['Seguro de Vida Individual', 'Grupo vida', 'Seguro de inversión', 'De retiro'],
-            'companias' => ['Thona Seguro', 'Banorte Seguros', 'Insignia Lite', 'Alianz', 'Metlife', 'General de Seguros']
+            'companias' => ['Thona Seguros', 'Banorte Seguros', 'Insignia Lite', 'Alianz', 'Metlife', 'General de Seguros']
         ],
         'Daños' => [
-            'seguros' => ['Seguro de Daños empresa', 'Seguro de casa', 'Seguro de transporte'],
-            'companias' => ['HDI Seguro', 'Banorte Seguros', 'Gmx Seguros', 'General de Seguros', 'Atlas Seguros']
+            'seguros' => ['Seguro de Daños empresa', 'casa', 'transporte'],
+            'companias' => ['HDI Seguros', 'Banorte Seguros', 'Gmx Seguros', 'General de Seguros', 'Atlas Seguros']
         ],
         'Accidentes y enfermedades' => [
-            'seguros' => ['Gastos Médicos Mayores', 'Accidentes Personales'],
-            'companias' => ['HDI Seguro', 'Banorte Seguros', 'Metlife', 'Alianz', 'BUPA', 'Thona Seguros']
+            'seguros' => ['Gastos Médicos Mayores', 'Accidentes Personales','Accidentes Personales Escolares'],
+            'companias' => ['HDI Seguros', 'Banorte Seguros', 'Metlife', 'Alianz', 'BUPA', 'Thona Seguros','General de Seguros', 'Atlas Seguros', 'HDI Seguros']
         ],
-        'Accidentes' => [
-            'seguros' => ['Accidentes Personales', 'Escolares'],
-            'companias' => ['HDI Seguros', 'Banorte Seguros', 'Thona Seguros', 'General de Seguros', 'Atlas Seguros']
-        ],
+       
         'Automóviles' => [
             'seguros' => ['Autos pickup', 'Camiones', 'Tractos'],
-            'companias' => ['HDI Seguros', 'Banorte Seguros', 'General de Seguros', 'Atlas Seguros', 'Qualitas', 'Ana Seguros']
+            'companias' => ['Banorte Seguros', 'General de Seguros', 'Atla Seguros', 'Qualitas', 'Ana Seguros','HDI Seguros']
         ]
     ];
-
     
     
    // Crear compañías

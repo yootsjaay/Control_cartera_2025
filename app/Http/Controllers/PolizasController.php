@@ -78,41 +78,43 @@ class PolizasController extends Controller
     }
 }
 
-    public function store(StorePolizaRequest $request)
-    {
-        try {
-            DB::beginTransaction();
-            $polizasCreadas = [];
+public function store(StorePolizaRequest $request)
+{
+    // Verificar que se hayan subido archivos PDF antes de iniciar la transacción
+    if (!$request->hasFile('pdf')) {
+        return redirect()->back()
+            ->withErrors(['general' => 'No se han subido archivos PDF.'])
+            ->withInput();
+    }
 
-            // Verificar que se hayan subido archivos PDF
-            if (!$request->hasFile('pdf')) {
-                throw new Exception('No se han subido archivos PDF.');
-            }
+    try {
+        // Usamos DB::transaction con closure para simplificar commit/rollback
+        $polizasCreadas = DB::transaction(function () use ($request) {
+            $polizas = [];
 
             foreach ($request->file('pdf') as $archivo) {
                 $poliza = $this->polizaService->crearPoliza($request, $archivo);
-                $polizasCreadas[] = $poliza;
+                $polizas[] = $poliza;
             }
 
-            DB::commit();
+            return $polizas;
+        });
 
-            return redirect()->route('polizas.index')
-                ->with('success', 'Pólizas cargadas exitosamente. Total: ' . count($polizasCreadas));
-        } catch (Exception $e) {
-            DB::rollBack();
-            $errorMessage = 'Ocurrió un error al procesar los PDFs: ' . $e->getMessage();
-            Log::error($errorMessage);
+        return redirect()->route('polizas.index')
+            ->with('success', 'Pólizas cargadas exitosamente. Total: ' . count($polizasCreadas));
+    } catch (Exception $e) {
+        $errorMessage = 'Ocurrió un error al procesar los PDFs: ' . $e->getMessage();
+        Log::error($errorMessage);
 
-            // Personalizar el mensaje según el tipo de error
-            if (str_contains($e->getMessage(), 'SQLSTATE[22001]')) {
-                $errorMessage = 'Error en la base de datos: Un valor excede la longitud permitida. Contacta al administrador.';
-            }
-
-            return redirect()->back()
-                ->withErrors(['general' => $errorMessage])
-                ->withInput();
+        if (str_contains($e->getMessage(), 'SQLSTATE[22001]')) {
+            $errorMessage = 'Error en la base de datos: Un valor excede la longitud permitida. Contacta al administrador.';
         }
+
+        return redirect()->back()
+            ->withErrors(['general' => $errorMessage])
+            ->withInput();
     }
+}
 
 
     public function show(string $id)
