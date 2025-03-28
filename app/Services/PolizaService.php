@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Services;
 
 use App\Models\{Cliente, Agente, Poliza, Compania, Seguro, Ramo};
@@ -17,35 +16,35 @@ class PolizaService
         $this->seguroServiceFactory = $seguroServiceFactory;
     }
 
-    /**
-     * Crea una nueva póliza a partir de un archivo PDF y datos del request.
-     *
-     * @param Request $request
-     * @param UploadedFile $archivo
-     * @return Poliza
-     * @throws Exception
-     */
     public function crearPoliza(Request $request, UploadedFile $archivo): Poliza
     {
+        // Validaciones del request
         $request->validate([
             'compania_id' => 'required|exists:companias,id',
             'seguro_id' => 'required|exists:seguros,id',
             'ramo_id' => 'required|exists:ramos,id',
         ]);
 
+        // Validar que el archivo sea un PDF
         $this->validarArchivo($archivo);
+
+        // Obtener usuario autenticado
         $user = $this->obtenerUsuarioAutenticado();
 
+        // Obtener los modelos asociados a la compañía, seguro y ramo
         $compania = Compania::findOrFail($request->compania_id);
         $seguro = Seguro::findOrFail($request->seguro_id);
         $ramo = Ramo::findOrFail($request->ramo_id);
 
-        $seguroService = $this->seguroServiceFactory->crearSeguroService($compania->slug);
+        // Usamos el nombre de la compañía para obtener el servicio correspondiente
+        $seguroService = $this->seguroServiceFactory->crearSeguroService($compania->nombre); // Cambié slug por nombre
         $datosExtraidos = $this->extraerDatos($seguroService, $archivo, $seguro, $ramo);
 
+        // Crear o actualizar cliente y agente
         $cliente = $this->crearCliente($datosExtraidos);
         $agente = $this->crearAgente($datosExtraidos);
 
+        // Guardar la póliza
         return $this->guardarPoliza($request, $archivo, $datosExtraidos, $cliente, $agente, $user, $compania, $seguro, $ramo);
     }
 
@@ -76,8 +75,7 @@ class PolizaService
             }
         }
 
-       return $datosExtraidos;
-     // dd($datosExtraidos);
+        return $datosExtraidos;
     }
 
     protected function crearCliente(array $datosExtraidos): Cliente
@@ -99,6 +97,7 @@ class PolizaService
     protected function guardarPoliza(Request $request, UploadedFile $archivo, array $datosExtraidos, Cliente $cliente, Agente $agente, $user, Compania $compania, Seguro $seguro, Ramo $ramo): Poliza
     {
         try {
+            // Crear la póliza en la base de datos
             $poliza = Poliza::create([
                 'numero_poliza' => $datosExtraidos['numero_poliza'],
                 'vigencia_inicio' => $datosExtraidos['vigencia_inicio'] ?? null,
@@ -108,15 +107,15 @@ class PolizaService
                 'status' => 'activa',
                 'cliente_id' => $cliente->id,
                 'compania_id' => $compania->id,
-                'seguro_id' => $seguro->id,
-                'ramo_id' => $ramo->id,
                 'user_id' => $user->id,
             ]);
 
+            // Guardar el archivo PDF
             $pdfPath = $archivo->store('polizas', 'public');
             $poliza->archivo_pdf = $pdfPath;
             $poliza->save();
 
+            // Registrar la creación de la póliza
             Log::info('Póliza creada:', [
                 'numero_poliza' => $poliza->numero_poliza,
                 'archivo' => $pdfPath,

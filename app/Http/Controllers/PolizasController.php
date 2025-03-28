@@ -77,7 +77,6 @@ class PolizasController extends Controller
         ], 500);
     }
 }
-
 public function store(StorePolizaRequest $request)
 {
     // Verificar que se hayan subido archivos PDF antes de iniciar la transacción
@@ -93,8 +92,17 @@ public function store(StorePolizaRequest $request)
             $polizas = [];
 
             foreach ($request->file('pdf') as $archivo) {
-                $poliza = $this->polizaService->crearPoliza($request, $archivo);
-                $polizas[] = $poliza;
+                // Obtener el servicio específico según el nombre de la compañía
+                $companiaNombre = $request->input('compania_nombre'); // Asegúrate que el campo exista en el request
+                $seguroService = $this->seguroServiceFactory->crearSeguroService($companiaNombre);
+
+                // Extraer datos usando el servicio específico de la compañía
+                $seguro = Seguro::find($request->seguro_id);
+                $ramo = Ramo::find($request->ramo_id);
+                $polizaData = $seguroService->extractToData($archivo, $seguro, $ramo);
+
+                // Crear la póliza o realizar alguna acción con los datos extraídos
+                $polizas[] = $polizaData;
             }
 
             return $polizas;
@@ -103,15 +111,9 @@ public function store(StorePolizaRequest $request)
         return redirect()->route('polizas.index')
             ->with('success', 'Pólizas cargadas exitosamente. Total: ' . count($polizasCreadas));
     } catch (Exception $e) {
-        $errorMessage = 'Ocurrió un error al procesar los PDFs: ' . $e->getMessage();
-        Log::error($errorMessage);
-
-        if (str_contains($e->getMessage(), 'SQLSTATE[22001]')) {
-            $errorMessage = 'Error en la base de datos: Un valor excede la longitud permitida. Contacta al administrador.';
-        }
-
+        Log::error($e->getMessage());
         return redirect()->back()
-            ->withErrors(['general' => $errorMessage])
+            ->withErrors(['general' => 'Error al procesar los PDFs.'])
             ->withInput();
     }
 }

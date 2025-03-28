@@ -15,13 +15,14 @@ class SeguroServiceFactory
         $this->servicios = $servicios;
     }
 
-    public function crearSeguroService(string $slug): SeguroServiceInterface
+    public function crearSeguroService(string $nombreCompania): SeguroServiceInterface
     {
-        if (!isset($this->servicios[$slug])) {
-            throw new \InvalidArgumentException("Compañía con slug '{$slug}' no está soportada.");
+        // Usamos el nombre de la compañía para acceder al servicio correspondiente
+        if (!isset($this->servicios[$nombreCompania])) {
+            throw new \InvalidArgumentException("Compañía '{$nombreCompania}' no está soportada.");
         }
 
-        $serviceClass = $this->servicios[$slug];
+        $serviceClass = $this->servicios[$nombreCompania];
         $service = app($serviceClass); // Usar app() para instanciar
 
         if (!$service instanceof SeguroServiceInterface) {
@@ -33,7 +34,8 @@ class SeguroServiceFactory
 
     public function createFromRequest(Request $request): SeguroServiceInterface
     {
-        $slug = $request->input('compania_slug'); // Asegúrate que este campo exista en el request
-        return $this->crearSeguroService($slug);
+        // Obtienes el nombre de la compañía del request
+        $nombreCompania = $request->input('compania_nombre'); // Asegúrate que este campo exista en el request
+        return $this->crearSeguroService($nombreCompania);
     }
 }

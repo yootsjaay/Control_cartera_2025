@@ -20,23 +20,25 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-
-      /* if(config('app.env') ==='local'){
-            $this->app['request']->server->set('HTTPS', true);
-        }*/
         // Bind del parser PDF
         $this->app->singleton(Parser::class, function ($app) {
-            return new Parser(); // Puedes agregar opciones de configuración aquí si es necesario
+            return new Parser();
         });
 
-        // Bind del Factory
+        // Definir los servicios por nombre de compañía
         $this->app->singleton(SeguroServiceFactory::class, function ($app) {
-            return new SeguroServiceFactory(config('aseguradoras.servicios')); // Inyectar configuración
+            return new SeguroServiceFactory([
+                'HDI Seguros' => HdiSegurosService::class,
+                'Banorte Seguros' => BanorteSeguroService::class,
+                'Qualitas' => QualitasSeguroService::class,
+                'GMX Seguros' => GmxSeguroService::class,
+                'Thona Seguros'=> ThonaSeguroService::class,
+                // Agrega más servicios según sea necesario
+            ]);
         });
+    
 
-        // Bind de la interfaz al factory (IMPORTANTE)
-        $this->app->bind(SeguroServiceInterface::class, SeguroServiceFactory::class);
-
+     
 
         // Registrar los servicios (sin instanciarlos directamente)
         $this->app->bind(HdiSegurosService::class, function ($app) {

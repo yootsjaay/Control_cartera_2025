@@ -13,8 +13,6 @@ use DateTime;
 
 class HdiSegurosService implements SeguroServiceInterface
 {
-  
-
     protected $parser; // Inyecta el parser
 
     public function __construct(Parser $parser)
@@ -24,123 +22,105 @@ class HdiSegurosService implements SeguroServiceInterface
 
     public function extractToData(UploadedFile $archivo, Seguro $seguro, Ramo $ramo): array
     {
-        if ($seguro->compania->slug !== 'hdi-seguros') {
-            throw new InvalidArgumentException("El seguro seleccionado no pertenece a HDI.");
-        }
-
-        if ($ramo->id_seguros != $seguro->id) {
-            throw new InvalidArgumentException("El ramo seleccionado no corresponde al seguro proporcionado.");
-        }
+        // Validaciones de seguro y ramo
+        $this->validarSeguroYramo($seguro, $ramo);
 
         try {
             $text = $this->extractText($archivo); // Usa el nuevo método extractText
-            \Log::info("Texto extraído:", ['data' => substr($text, 0, 500)]);
+            Log::info("Texto extraído:", ['data' => substr($text, 0, 500)]);
             return $this->procesarTexto($text, $ramo);
-           //dd($text);
         } catch (Exception $e) {
-            \Log::error("Error al procesar el PDF: " . $e->getMessage());
+            Log::error("Error al procesar el PDF: " . $e->getMessage());
             throw new InvalidArgumentException("No se pudo procesar el archivo PDF: " . $e->getMessage());
         }
     }
+
 
     private function extractText(UploadedFile $archivo): string
     {
         try {
             $pdf = $this->parser->parseFile($archivo->getPathname()); // Usa el parser inyectado
-            $text = $pdf->getText();
-            return $text;
+            return $pdf->getText();
         } catch (\Exception $e) {
-            \Log::error("Error al parsear el PDF: " . $e->getMessage());
+            Log::error("Error al parsear el PDF: " . $e->getMessage());
             throw new Exception("Error al procesar el PDF.");
         }
     }
-
     private function procesarTexto(string $text, Ramo $ramo): array
     {
-        switch (strtolower($ramo->slug)) {
-            case self::RAMO_MEDICA_TOTAL_PLUS:
-                return $this->procesarGastosMedicosTotal($text);
-            case self::RAMO_MEDICA_VITAL:
-                return $this->procesarGastosMedicosVital($text);
-            case self::RAMO_VEHICULOS:
-                return $this->procesarAutos($text);
-            case self::RAMO_CAMIONES_HASTA_3_5:
-                return $this->procesarCamionesHasta3_5($text);
-            case self::RAMO_CAMIONES_MASDE_3_5:
-                return $this->procesarCamionesMasDe_3_5($text);
-            case self::RAMO_HDI_CASA:
-                return $this->procesarHdiCasa($text);
-            case self::RAMO_PAQUETE_FAMILIAR:
-                return $this->procesarHdiPaqueteFamiliarTodoRiesgo($text);
-            case self::RAMO_RESPONSABILIDAD_CIVIL_AGENTES:
-                return $this->procesarHdiResponsabilidadCivilProfesionalAgentes($text);
-            case self::RAMO_HDI_EMPRESA:
-                return $this->procesarHdiEmpresa($text);
-            case self::RAMO_EQUIPO_MAQUINARIA: 
-                return $this->procesarEquipoMaquinaria($text);
-            case self::RAMO_RESPONSABILIDAD_CIVIL_VIAJERO:
-                return $this->procesarCivilViajero($text);
-            case self:: RAMO_EMBARCACIONES:
-                return $this->procesarEmbarcaciones($text);
+        // Obtener datos comunes a todos los ramos
+        $datosComunes = $this->procesarDatosComunes($text);
+    
+        switch (strtolower($ramo->nombre)) {
+            case 'automóviles':
+                $datosEspecificos = $this->procesarAutos($text);
+                break;
+            case 'accidentes y enfermedades':
+                $datosEspecificos = $this->procesarGastosMedicosTotal($text);
+                break;
+            case 'daños':
+                $datosEspecificos = $this->procesarCivilViajero($text);
+                break;
             default:
-                throw new InvalidArgumentException("El ramo {$ramo->slug} no tiene un procesador definido.");
+                throw new InvalidArgumentException("El ramo {$ramo->nombre} no tiene un procesador definido.");
         }
+    
+        // Combina los datos comunes con los específicos
+        return array_merge($datosComunes, $datosEspecificos);
     }
-
-
+    
     private function procesarDatosComunes(string $text): array
-{
-    $datos = [];
-
-    // Nombre del cliente (soporta ambos formatos: con o sin "Cliente:")
-    if (preg_match('/Cliente:\s*\d+\s*Nombre:\s*([A-ZÁÉÍÓÚÑ\s\.\-]+)(?=\n\s*Domicilio Fiscal:)/i', $text, $matches)) {
-        $datos['nombre_cliente'] = trim($matches[1]) ?: 'SIN NOMBRE';
-    } elseif (preg_match('/Cliente:\s*\d+\s*Nombre:\s*([^\n]+)/i', $text, $matches)) {
-        $datos['nombre_cliente'] = trim($matches[1]) ?: 'SIN NOMBRE'; // Para HdiPaqueteFamiliar
-    } elseif (preg_match('/Nombre:\s*([A-ZÁÉÍÓÚÑ\s\.\-]+)\s*(?=\n\s*Domicilio Fiscal:)/i', $text, $matches)) {
-        $datos['nombre_cliente'] = trim($matches[1]) ?: 'SIN NOMBRE';
-    } else {
-        $datos['nombre_cliente'] = 'SIN NOMBRE';
+    {
+        $datos = [];
+    
+        // Nombre del cliente
+        if (preg_match('/Cliente:\s*\d+\s*Nombre:\s*([A-ZÁÉÍÓÚÑ\s\.\-]+)(?=\n\s*Domicilio Fiscal:)/i', $text, $matches)) {
+            $datos['nombre_cliente'] = trim($matches[1]) ?: 'SIN NOMBRE';
+        } elseif (preg_match('/Nombre:\s*([A-ZÁÉÍÓÚÑ\s\.\-]+)\s*(?=\n\s*Domicilio Fiscal:)/i', $text, $matches)) {
+            $datos['nombre_cliente'] = trim($matches[1]) ?: 'SIN NOMBRE';
+        } else {
+            $datos['nombre_cliente'] = 'SIN NOMBRE';
+        }
+    
+        // RFC
+        $datos['rfc'] = $this->extraerDato($text, '/RFC:\s*([A-Z0-9]+)/i') ?? 'N/A';
+    
+        // Número de póliza
+        if (preg_match('/No\.\s*(?:de\s*)?Póliza:\s*([\d\s\-]+)/i', $text, $matches)) {
+            $datos['numero_poliza'] = preg_replace('/\s+/', '', $matches[1]);
+        } else {
+            $datos['numero_poliza'] = 'N/A';
+        }
+    
+        // Vigencia
+        if (preg_match('/Vigencia:.*?(\d{2}[\/\-]\w{3}[\/\-]\d{4}).*?(\d{2}[\/\-]\w{3}[\/\-]\d{4})/si', $text, $matches)) {
+            $meses = [
+                'ENE' => '01', 'FEB' => '02', 'MAR' => '03', 'ABR' => '04',
+                'MAY' => '05', 'JUN' => '06', 'JUL' => '07', 'AGO' => '08',
+                'SEP' => '09', 'OCT' => '10', 'NOV' => '11', 'DIC' => '12'
+            ];
+            $fechaInicio = strtr($matches[1], $meses);
+            $fechaFin = strtr($matches[2], $meses);
+            $datos['vigencia_inicio'] = date_create_from_format('d/m/Y', $fechaInicio)->format('Y-m-d') ?? null;
+            $datos['vigencia_fin'] = date_create_from_format('d/m/Y', $fechaFin)->format('Y-m-d') ?? null;
+        } else {
+            $datos['vigencia_inicio'] = null;
+            $datos['vigencia_fin'] = null;
+        }
+    
+        // Forma de pago
+        if (preg_match('/(?:Forma\s+de\s+Pago:\s*|Forma de pago:\s*)?(ANUAL|SEMESTRAL|TRIMESTRAL|MENSUAL)\s*(EFECTIVO|CHEQUE|TARJETA)?/i', $text, $matches)) {
+            $datos['forma_pago'] = trim($matches[1] . ' ' . ($matches[2] ?? '')) ?: 'N/A';
+        } else {
+            $datos['forma_pago'] = 'N/A';
+        }
+    
+        // Total a pagar
+        $datos['total_pagar'] = $this->extraerTotalPagar($text);
+    
+        return $datos;
     }
-
-    // RFC
-    $datos['rfc'] = $this->extraerDato($text, '/RFC:\s*([A-Z0-9]+)/i') ?? 'N/A';
-
-    // Número de póliza (soporta "No. Póliza:" y "No. de Póliza:")
-    if (preg_match('/No\.\s*(?:de\s*)?Póliza:\s*([\d\s\-]+)/i', $text, $matches)) {
-        $datos['numero_poliza'] = preg_replace('/\s+/', '', $matches[1]);
-    } else {
-        $datos['numero_poliza'] = 'N/A';
-    }
-
-    // Vigencia (soporta formato flexible)
-    if (preg_match('/Vigencia:.*?(\d{2}[\/\-]\w{3}[\/\-]\d{4}).*?(\d{2}[\/\-]\w{3}[\/\-]\d{4})/si', $text, $matches)) {
-        $meses = [
-            'ENE' => '01', 'FEB' => '02', 'MAR' => '03', 'ABR' => '04',
-            'MAY' => '05', 'JUN' => '06', 'JUL' => '07', 'AGO' => '08',
-            'SEP' => '09', 'OCT' => '10', 'NOV' => '11', 'DIC' => '12'
-        ];
-        $fechaInicio = strtr($matches[1], $meses);
-        $fechaFin = strtr($matches[2], $meses);
-        $datos['vigencia_inicio'] = date_create_from_format('d/m/Y', $fechaInicio) ? date_create_from_format('d/m/Y', $fechaInicio)->format('Y-m-d') : null;
-        $datos['vigencia_fin'] = date_create_from_format('d/m/Y', $fechaFin) ? date_create_from_format('d/m/Y', $fechaFin)->format('Y-m-d') : null;
-    } else {
-        $datos['vigencia_inicio'] = null;
-        $datos['vigencia_fin'] = null;
-    }
-
-    // Forma de pago (soporta "Forma de Pago:" con espacios)
-    if (preg_match('/(?:Forma\s+de\s+Pago:\s*|Forma de pago:\s*)?(ANUAL|SEMESTRAL|TRIMESTRAL|MENSUAL)\s*(EFECTIVO|CHEQUE|TARJETA)?/i', $text, $matches)) {
-        $datos['forma_pago'] = trim($matches[1] . ' ' . ($matches[2] ?? '')) ?: 'N/A';
-    } else {
-        $datos['forma_pago'] = 'N/A';
-    }
-
-    // Total a pagar
-    $datos['total_pagar'] = $this->extraerTotalPagar($text);
-
-    return $datos;
-}
+    
     
     private function procesarCivilViajero(string $text): array
     {
