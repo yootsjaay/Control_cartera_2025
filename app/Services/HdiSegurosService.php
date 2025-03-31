@@ -6,10 +6,9 @@ use Illuminate\Http\UploadedFile;
 use Smalot\PdfParser\Parser;
 use App\Models\Seguro;
 use App\Models\Ramo;
-
+use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 use Exception;
-use DateTime;
 
 class HdiSegurosService implements SeguroServiceInterface
 {
@@ -46,28 +45,51 @@ class HdiSegurosService implements SeguroServiceInterface
             throw new Exception("Error al procesar el PDF.");
         }
     }
-    private function procesarTexto(string $text, Ramo $ramo): array
+    private function procesarTexto(string $text, Ramo $ramo, Seguro $seguro): array
     {
         // Obtener datos comunes a todos los ramos
         $datosComunes = $this->procesarDatosComunes($text);
     
-        switch (strtolower($ramo->nombre)) {
-            case 'automóviles':
-                $datosEspecificos = $this->procesarAutos($text);
-                break;
-            case 'accidentes y enfermedades':
-                $datosEspecificos = $this->procesarGastosMedicosTotal($text);
-                break;
-            case 'daños':
-                $datosEspecificos = $this->procesarCivilViajero($text);
-                break;
-            default:
-                throw new InvalidArgumentException("El ramo {$ramo->nombre} no tiene un procesador definido.");
+        // Mapear ramos y seguros específicos
+        $mapaProcesadores = [
+            'Automóviles' => [
+                'Autos pickup' => 'procesarAutosPickup',
+                'Camiones' => 'procesarCamiones',
+                'Tractos' => 'procesarTractos',
+            ],
+            'Accidentes y enfermedades' => [
+                'Gastos Médicos Mayores' => 'procesarGastosMedicosMayores',
+                'Accidentes Personales' => 'procesarAccidentesPersonales',
+                'Accidentes Personales Escolares' => 'procesarAccidentesEscolares',
+            ],
+            'Daños' => [
+                'Seguro de Daños empresa' => 'procesarDaniosEmpresa',
+                'Casa' => 'procesarCasa',
+                'Transporte' => 'procesarTransporte',
+            ],
+            'Vida' => [
+                'Seguro de Vida Individual' => 'procesarVidaIndividual',
+                'Grupo vida' => 'procesarGrupoVida',
+                'Seguro de inversión' => 'procesarInversion',
+                'De retiro' => 'procesarRetiro',
+            ],
+        ];
+    
+        // Verificar si el ramo y seguro tienen un procesador definido
+        if (!isset($mapaProcesadores[$ramo->nombre][$seguro->nombre])) {
+            throw new InvalidArgumentException("No existe un procesador definido para el seguro '{$seguro->nombre}' del ramo '{$ramo->nombre}'.");
         }
+    
+        // Obtener el nombre del método procesador
+        $metodoProcesador = $mapaProcesadores[$ramo->nombre][$seguro->nombre];
+    
+        // Ejecutar el método correspondiente
+        $datosEspecificos = $this->$metodoProcesador($text);
     
         // Combina los datos comunes con los específicos
         return array_merge($datosComunes, $datosEspecificos);
     }
+    
     
     private function procesarDatosComunes(string $text): array
     {
@@ -101,8 +123,10 @@ class HdiSegurosService implements SeguroServiceInterface
             ];
             $fechaInicio = strtr($matches[1], $meses);
             $fechaFin = strtr($matches[2], $meses);
-            $datos['vigencia_inicio'] = date_create_from_format('d/m/Y', $fechaInicio)->format('Y-m-d') ?? null;
-            $datos['vigencia_fin'] = date_create_from_format('d/m/Y', $fechaFin)->format('Y-m-d') ?? null;
+            $fi = date_create_from_format('d/m/Y', $fechaInicio);
+            $ff = date_create_from_format('d/m/Y', $fechaFin);
+            $datos['vigencia_inicio'] = $fi ? $fi->format('Y-m-d') : null;
+            $datos['vigencia_fin'] = $ff ? $ff->format('Y-m-d') : null;
         } else {
             $datos['vigencia_inicio'] = null;
             $datos['vigencia_fin'] = null;
@@ -118,10 +142,85 @@ class HdiSegurosService implements SeguroServiceInterface
         // Total a pagar
         $datos['total_pagar'] = $this->extraerTotalPagar($text);
     
-        return $datos;
+       // return $datos;
+       dd($datos);
     }
+    private function validarSeguroYramo(Seguro $seguro, Ramo $ramo): void
+    {
+        // Ejemplo básico: verifica que el seguro pertenezca a la compañía HDI o que el ramo sea de los permitidos.
+        if (!$seguro || !$ramo) {
+            throw new InvalidArgumentException("Seguro o ramo inválido.");
+        }
+        // aqui agregar validaciones.
+    }
+//PROCESAR AUTOS : 
+private function procesarAutosPickup(string $text): array
+{
+    $datos = [];
+
+    // Nombre del cliente
+    if (preg_match('/(?:\n|^)([A-ZÁÉÍÓÚÑa-záéíóúñ\s]+)\nRFC:/i', $text, $matches)) {
+        $datos['nombre_cliente'] = trim($matches[1]) ?: 'SIN NOMBRE';
+    } else {
+        $datos['nombre_cliente'] = 'SIN NOMBRE'; // Más corto que "NO ESPECIFICADO"
+    }
+
+    // RFC
+    $datos['rfc'] = $this->extraerDato($text, '/RFC:\s*([A-Z0-9]{12,13})/i') ?? 'N/A'; // Cambiado a "N/A"
+
+    // Número de póliza
+    $datos['numero_poliza'] = $this->extraerDato($text, '/Póliza:\s*([\d\-]+)/i') ?? 'N/A';
+
+    
+    // Vigencia
+    if (preg_match('/Vigencia:\s*Desde las \d{2}:\d{2} hrs\. del\s*(\d{2}\/\d{2}\/\d{4})\s*Hasta las \d{2}:\d{2} hrs\. del\s*(\d{2}\/\d{2}\/\d{4})/i', $text, $matches)) {
+        $inicio = DateTime::createFromFormat('d/m/Y', $matches[1]);
+        $fin = DateTime::createFromFormat('d/m/Y', $matches[2]);
+        $datos['vigencia_inicio'] = $inicio ? $inicio->format('Y-m-d') : '0000-00-00';
+        $datos['vigencia_fin'] = $fin ? $fin->format('Y-m-d') : '0000-00-00';
+    } else {
+        $datos['vigencia_inicio'] = '0000-00-00';
+        $datos['vigencia_fin'] = '0000-00-00';
+    }
+
+    // Forma de pago
+    if (preg_match('/(ANUAL|SEMESTRAL|TRIMESTRAL|MENSUAL)\s*(EFECTIVO|CHEQUE|TARJETA)?/i', $text, $matches)) {
+        $datos['forma_pago'] = trim($matches[0]);
+    } else {
+        $datos['forma_pago'] = 'N/A';
+    }
+
+    // Agente
+    if (preg_match('/Agente:\s*(\d+)\s+([A-ZÁÉÍÓÚÑa-záéíóúñ\s\.\-]+)(?=\n|$)/i', $text, $matches)) {
+        $datos['numero_agente'] = trim($matches[1]);
+        $datos['nombre_agente'] = trim($matches[2]);
+    } else {
+        $datos['numero_agente'] = '000000';
+        $datos['nombre_agente'] = 'N/A';
+    }
+
+    // Total a pagar
+    if (preg_match('/([0-9,]+\.\d{2})\s*Total a Pagar/', $text, $matches)) {
+        $datos['total_pagar'] = (float) str_replace(',', '', trim($matches[1]));
+    } else {
+        preg_match_all('/[\d,]+\.\d{2}/', $text, $matches);
+        $ultimo_monto = end($matches[0]);
+        $datos['total_pagar'] = $ultimo_monto ? (float) str_replace(',', '', $ultimo_monto) : 0.00;
+    }
+
+    //return $datos;
+   dd($datos);
+}
     
     
+private function extraerDato(string $text, string $pattern, $default = null)
+{
+    if (preg_match($pattern, $text, $matches)) {
+        return trim($matches[1]);
+    }
+    return $default;
+}
+
     private function procesarCivilViajero(string $text): array
     {
         $datos = $this->procesarDatosComunes($text);
@@ -336,71 +435,7 @@ class HdiSegurosService implements SeguroServiceInterface
     }
 
  
-    private function procesarAutos(string $text): array
-    {
-        $datos = [];
-
-        // Nombre del cliente
-        if (preg_match('/(?:\n|^)([A-ZÁÉÍÓÚÑa-záéíóúñ\s]+)\nRFC:/i', $text, $matches)) {
-            $datos['nombre_cliente'] = trim($matches[1]) ?: 'SIN NOMBRE';
-        } else {
-            $datos['nombre_cliente'] = 'SIN NOMBRE'; // Más corto que "NO ESPECIFICADO"
-        }
-
-        // RFC
-        $datos['rfc'] = $this->extraerDato($text, '/RFC:\s*([A-Z0-9]{12,13})/i') ?? 'N/A'; // Cambiado a "N/A"
-
-        // Número de póliza
-        $datos['numero_poliza'] = $this->extraerDato($text, '/Póliza:\s*([\d\-]+)/i') ?? 'N/A';
-
-        
-        // Vigencia
-        if (preg_match('/Vigencia:\s*Desde las \d{2}:\d{2} hrs\. del\s*(\d{2}\/\d{2}\/\d{4})\s*Hasta las \d{2}:\d{2} hrs\. del\s*(\d{2}\/\d{2}\/\d{4})/i', $text, $matches)) {
-            $inicio = DateTime::createFromFormat('d/m/Y', $matches[1]);
-            $fin = DateTime::createFromFormat('d/m/Y', $matches[2]);
-            $datos['vigencia_inicio'] = $inicio ? $inicio->format('Y-m-d') : '0000-00-00';
-            $datos['vigencia_fin'] = $fin ? $fin->format('Y-m-d') : '0000-00-00';
-        } else {
-            $datos['vigencia_inicio'] = '0000-00-00';
-            $datos['vigencia_fin'] = '0000-00-00';
-        }
-
-        // Forma de pago
-        if (preg_match('/(ANUAL|SEMESTRAL|TRIMESTRAL|MENSUAL)\s*(EFECTIVO|CHEQUE|TARJETA)?/i', $text, $matches)) {
-            $datos['forma_pago'] = trim($matches[0]);
-        } else {
-            $datos['forma_pago'] = 'N/A';
-        }
-
-        // Agente
-        if (preg_match('/Agente:\s*(\d+)\s+([A-ZÁÉÍÓÚÑa-záéíóúñ\s\.\-]+)(?=\n|$)/i', $text, $matches)) {
-            $datos['numero_agente'] = trim($matches[1]);
-            $datos['nombre_agente'] = trim($matches[2]);
-        } else {
-            $datos['numero_agente'] = '000000';
-            $datos['nombre_agente'] = 'N/A';
-        }
-
-        // Total a pagar
-        if (preg_match('/([0-9,]+\.\d{2})\s*Total a Pagar/', $text, $matches)) {
-            $datos['total_pagar'] = (float) str_replace(',', '', trim($matches[1]));
-        } else {
-            preg_match_all('/[\d,]+\.\d{2}/', $text, $matches);
-            $ultimo_monto = end($matches[0]);
-            $datos['total_pagar'] = $ultimo_monto ? (float) str_replace(',', '', $ultimo_monto) : 0.00;
-        }
-
-        return $datos;
-       //dd($datos);
-    }
-
-    private function extraerDato(string $text, string $pattern, $default = null)
-{
-    if (preg_match($pattern, $text, $matches)) {
-        return trim($matches[1]);
-    }
-    return $default;
-}
+   
 
 private function extraerMonto(string $text, string $pattern): ?float
 {

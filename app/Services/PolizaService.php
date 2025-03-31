@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use App\Models\{Cliente, Agente, Poliza, Compania, Seguro, Ramo};
@@ -18,26 +19,19 @@ class PolizaService
 
     public function crearPoliza(Request $request, UploadedFile $archivo): Poliza
     {
-        // Validaciones del request
-        $request->validate([
-            'compania_id' => 'required|exists:companias,id',
-            'seguro_id' => 'required|exists:seguros,id',
-            'ramo_id' => 'required|exists:ramos,id',
-        ]);
-
-        // Validar que el archivo sea un PDF
+        // Validaciones del request (ya están cubiertas en StorePolizaRequest)
         $this->validarArchivo($archivo);
 
         // Obtener usuario autenticado
         $user = $this->obtenerUsuarioAutenticado();
 
-        // Obtener los modelos asociados a la compañía, seguro y ramo
+        // Obtener los modelos asociados (la validación ya garantiza su existencia)
         $compania = Compania::findOrFail($request->compania_id);
         $seguro = Seguro::findOrFail($request->seguro_id);
         $ramo = Ramo::findOrFail($request->ramo_id);
 
         // Usamos el nombre de la compañía para obtener el servicio correspondiente
-        $seguroService = $this->seguroServiceFactory->crearSeguroService($compania->nombre); // Cambié slug por nombre
+        $seguroService = $this->seguroServiceFactory->crearSeguroService($compania->nombre);
         $datosExtraidos = $this->extraerDatos($seguroService, $archivo, $seguro, $ramo);
 
         // Crear o actualizar cliente y agente

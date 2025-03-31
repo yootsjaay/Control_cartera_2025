@@ -10,23 +10,23 @@ class DatabaseSeeder extends Seeder
 {
     public function run()
     {
-        // Datos de ramos, seguros y compañias
+        // Datos de ramos, seguros y compañías
         $ramos = [
             'Vida' => [
                 'seguros' => ['Seguro de Vida Individual', 'Grupo vida', 'Seguro de inversión', 'De retiro'],
                 'companias' => ['Thona Seguros', 'Banorte Seguros', 'Insignia Lite', 'Alianz', 'Metlife', 'General de Seguros']
             ],
             'Daños' => [
-                'seguros' => ['Seguro de Daños empresa', 'casa', 'transporte'],
+                'seguros' => ['Seguro de Daños empresa', 'Casa', 'Transporte'],
                 'companias' => ['HDI Seguros', 'Banorte Seguros', 'Gmx Seguros', 'General de Seguros', 'Atlas Seguros']
             ],
             'Accidentes y enfermedades' => [
-                'seguros' => ['Gastos Médicos Mayores', 'Accidentes Personales','Accidentes Personales Escolares'],
-                'companias' => ['HDI Seguros', 'Banorte Seguros', 'Metlife', 'Alianz', 'BUPA', 'Thona Seguros','General de Seguros', 'Atlas Seguros', 'HDI Seguros']
+                'seguros' => ['Gastos Médicos Mayores', 'Accidentes Personales', 'Accidentes Personales Escolares'],
+                'companias' => ['HDI Seguros', 'Banorte Seguros', 'Metlife', 'Alianz', 'BUPA', 'Thona Seguros', 'General de Seguros', 'Atlas Seguros']
             ],
             'Automóviles' => [
                 'seguros' => ['Autos pickup', 'Camiones', 'Tractos'],
-                'companias' => ['Banorte Seguros', 'General de Seguros', 'Atla Seguros', 'Qualitas', 'Ana Seguros','HDI Seguros']
+                'companias' => ['Banorte Seguros', 'General de Seguros', 'Atlas Seguros', 'Qualitas', 'Ana Seguros', 'HDI Seguros']
             ]
         ];
 
@@ -49,8 +49,8 @@ class DatabaseSeeder extends Seeder
                 ]);
 
                 // Asignar compañías específicas a cada seguro
-                $companiaIds = array_map(fn($nombre) => $companiasInstances[$nombre]->id, $data['companias']);
-                $seguro->companias()->syncWithoutDetaching($companiaIds); // syncWithoutDetaching evita duplicados
+                $companiaIds = array_map(fn($nombre) => $companiasInstances[$nombre]->id, array_unique($data['companias']));
+                $seguro->companias()->syncWithoutDetaching($companiaIds); // Evita duplicados
             }
         }
     }

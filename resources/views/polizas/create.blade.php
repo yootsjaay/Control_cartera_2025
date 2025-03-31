@@ -13,98 +13,112 @@
 
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <strong>¡Éxito!</strong> {{ session('success') }}
+            <div class="d-flex align-items-center">
+                <i class="fas fa-check-circle fa-2x me-2"></i>
+                <div>
+                    <strong>¡Éxito!</strong> {{ session('success') }}
+                </div>
+            </div>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
     @if ($errors->any())
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            <strong>¡Error!</strong> Por favor corrige los siguientes problemas:
-            <ul class="mt-2">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
+            <div class="d-flex align-items-center">
+                <i class="fas fa-exclamation-triangle fa-2x me-2"></i>
+                <div>
+                    <strong>¡Error!</strong> Por favor corrige los siguientes problemas:
+                    <ul class="mt-2 mb-0">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     @endif
 
-    <div class="row">
-        <div class="col-lg-8 mx-auto">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="card-title">Subir Póliza</h3>
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white py-3">
+                    <h3 class="card-title mb-0"><i class="fas fa-file-pdf me-2"></i>Subir Póliza</h3>
                 </div>
-                <div class="card-body">
-                    <form action="{{ route('polizas.store') }}" method="POST" enctype="multipart/form-data">
+                <div class="card-body p-4">
+                    <form action="{{ route('polizas.store') }}" method="POST" enctype="multipart/form-data" id="uploadForm">
                         @csrf
 
-                        <!-- Selección de Compañía -->
-                        <div class="mb-4">
-                            <label for="compania_id" class="form-label">Compañía *</label>
-                            <select class="form-select" name="compania_id" id="compania_id" required>
-                                <option value="" disabled selected>Seleccione una compañía</option>
-                                @foreach ($companias as $compania)
-                                    <option value="{{ $compania->id }}">{{ $compania->nombre }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-
-                        <!-- Selección de Ramo -->
-                        <div class="mb-4">
-                            <label for="ramo_id" class="form-label">Ramo *</label>
-                            <div class="position-relative">
-                                <select class="form-select" name="ramo_id" id="ramo_id" required disabled>
-                                    <option value="" disabled selected>Primero seleccione una compañía</option>
-                                </select>
-                                <div id="loadingRamos" class="spinner-border spinner-border-sm text-primary d-none" role="status">
-                                    <span class="visually-hidden">Cargando...</span>
+                        <div class="row g-4">
+                            <!-- Selección de Compañía -->
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <select class="form-select" name="compania_id" id="compania_id" required>
+                                        <option value="" disabled selected>Seleccione una compañía</option>
+                                        @foreach ($companias as $compania)
+                                            <option value="{{ $compania->id }}">{{ $compania->nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                    <label for="compania_id">Compañía *</label>
                                 </div>
                             </div>
-                        </div>
 
-                        <!-- Selección de Seguro -->
-                        <div class="mb-4">
-                            <label for="seguro_id" class="form-label">Seguro *</label>
-                            <div class="position-relative">
-                                <select class="form-select" name="seguro_id" id="seguro_id" required disabled>
-                                    <option value="" disabled selected>Primero seleccione un ramo</option>
-                                </select>
-                                <div id="loadingSeguros" class="spinner-border spinner-border-sm text-primary d-none" role="status">
-                                    <span class="visually-hidden">Cargando...</span>
+                            <!-- Selección de Ramo -->
+                            <div class="col-md-6">
+                                <div class="form-floating position-relative">
+                                    <select class="form-select" name="ramo_id" id="ramo_id" required disabled>
+                                        <option value="" disabled selected>Cargando...</option>
+                                    </select>
+                                    <label for="ramo_id">Ramo *</label>
+                                    <div id="loadingRamos" class="position-absolute end-0 top-50 translate-middle-y me-3">
+                                        <div class="spinner-border spinner-border-sm text-primary d-none" role="status">
+                                            <span class="visually-hidden">Cargando...</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
+
+                            <!-- Selección de Seguro -->
+                            <div class="col-md-6">
+                                <div class="form-floating position-relative">
+                                    <select class="form-select" name="seguro_id" id="seguro_id" required disabled>
+                                        <option value="" disabled selected>Cargando...</option>
+                                    </select>
+                                    <label for="seguro_id">Seguro *</label>
+                                    <div id="loadingSeguros" class="position-absolute end-0 top-50 translate-middle-y me-3">
+                                        <div class="spinner-border spinner-border-sm text-primary d-none" role="status">
+                                            <span class="visually-hidden">Cargando...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Subida de PDF -->
+                            <div class="col-12">
+                                <div class="file-drop-area rounded-3 border-2 border-dashed border-primary bg-light" id="pdfDropZone">
+                                    <div class="file-msg text-center p-4">
+                                        <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                                        <p class="mb-1 fw-bold">Arrastra tus archivos PDF aquí</p>
+                                        <p class="mb-0 text-muted">o haz clic para seleccionar</p>
+                                        <p class="mt-2 mb-0 small text-muted">Máximo 10 archivos • Máximo 10MB por archivo</p>
+                                    </div>
+                                    <input class="file-input" type="file" name="pdf[]" id="pdf" multiple required accept=".pdf">
+                                </div>
+                                <div id="filePreview" class="row g-2 mt-3"></div>
+                            </div>
                         </div>
 
-                        <!-- Subida de PDF -->
-                        <div class="mb-4">
-                            <label for="pdf" class="form-label">Subir Archivo(s) PDF *</label>
-                            <div class="file-drop-area" id="pdfDropZone">
-                                <span class="file-msg">Arrastra archivos aquí o haz clic para seleccionar</span>
-                                <input class="file-input" type="file" name="pdf[]" id="pdf" multiple required accept=".pdf">
-                            </div>
-                            <div class="form-text mt-2">
-                                <span class="fw-bold">Requisitos:</span>
-                                <ul class="mt-1">
-                                    <li>Máximo 10 archivos</li>
-                                    <li>Tamaño máximo por archivo: 10MB</li>
-                                    <li>Solo formato PDF</li>
-                                </ul>
-                            </div>
-                            <div id="filePreview" class="mt-3"></div>
-                        </div>
-
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-upload me-2"></i>Subir Pólizas
+                        <div class="d-grid gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg py-3">
+                                <i class="fas fa-upload me-2"></i>Procesar Pólizas
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
-    </div> 
+    </div>
 </div>
 @endsection
 
@@ -113,21 +127,33 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 <style>
     .file-drop-area {
-        border: 2px dashed #007bff;
-        border-radius: 5px;
-        padding: 25px;
-        text-align: center;
-        transition: all 0.3s;
+        transition: all 0.3s ease;
+        position: relative;
     }
+    
     .file-drop-area:hover {
-        background-color: #f8f9fa;
+        background-color: rgba(0, 123, 255, 0.05);
+        border-color: #0056b3;
     }
-    .file-input {
-        display: none;
+    
+    .file-drop-area.dragover {
+        background-color: rgba(0, 123, 255, 0.1);
+        border-color: #004085;
+        box-shadow: 0 0 15px rgba(0, 123, 255, 0.2);
     }
-    .file-msg {
-        display: block;
-        color: #007bff;
+    
+    .file-preview-item {
+        padding: 0.5rem;
+        background: #f8f9fa;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .file-preview-item .remove-file {
+        cursor: pointer;
+        margin-left: auto;
+        color: #dc3545;
     }
 </style>
 @endsection

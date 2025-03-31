@@ -24,6 +24,14 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(Parser::class, function ($app) {
             return new Parser();
         });
+ 
+
+    $this->app->singleton(\App\Services\SeguroServiceFactory::class, function ($app) {
+        // Puedes pasar un array de servicios según tus necesidades
+        return new \App\Services\SeguroServiceFactory([]);
+    });
+
+
 
         // Definir los servicios por nombre de compañía
         $this->app->singleton(SeguroServiceFactory::class, function ($app) {

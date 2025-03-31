@@ -7,16 +7,21 @@ use App\Models\{Cliente, Compania, Seguro, Poliza, Agente, Ramo};
 use Illuminate\Support\Facades\{Storage, Log, DB};
 use App\Services\PolizaService;
 use App\Http\Requests\StorePolizaRequest;
+use App\Services\SeguroServiceFactory;
+
 use Exception;
 use Carbon\Carbon;
 
 class PolizasController extends Controller
 {
     protected $polizaService;
+    protected $seguroServiceFactory;
 
-    public function __construct(PolizaService $polizaService)
+    public function __construct(PolizaService $polizaService, SeguroServiceFactory $seguroServiceFactory)
     {
-        $this->polizaService = $polizaService;
+        $this->polizaService = $polizaService; 
+        $this->seguroServiceFactory = $seguroServiceFactory;
+    
     }
 
     public function index()
@@ -92,17 +97,44 @@ public function store(StorePolizaRequest $request)
             $polizas = [];
 
             foreach ($request->file('pdf') as $archivo) {
-                // Obtener el servicio específico según el nombre de la compañía
-                $companiaNombre = $request->input('compania_nombre'); // Asegúrate que el campo exista en el request
-                $seguroService = $this->seguroServiceFactory->crearSeguroService($companiaNombre);
+                // Obtener la compañía desde la base de datos
+                $compania = Compania::find($request->compania_id);
 
-                // Extraer datos usando el servicio específico de la compañía
+                if (!$compania) {
+                    throw new Exception("La compañía seleccionada no es válida.");
+                }
+
+                // Usamos el SeguroServiceFactory para obtener el servicio correspondiente a la compañía
+                $seguroServiceFactory = new SeguroServiceFactory([]);
+                $seguroService = $seguroServiceFactory->crearSeguroService($compania->nombre);
+
+                // Obtener seguro y ramo seleccionados
                 $seguro = Seguro::find($request->seguro_id);
                 $ramo = Ramo::find($request->ramo_id);
+
+                if (!$seguro || !$ramo) {
+                    throw new Exception("Seguro o ramo no válidos.");
+                }
+
+                // Extraer datos usando el servicio específico de la compañía
                 $polizaData = $seguroService->extractToData($archivo, $seguro, $ramo);
 
-                // Crear la póliza o realizar alguna acción con los datos extraídos
-                $polizas[] = $polizaData;
+                // Crear la póliza en la base de datos
+                $poliza = Poliza::create(array_merge($polizaData, [
+                    'cliente_id' => $request->cliente_id,
+                    'compania_id' => $compania->id,
+                    'seguro_id' => $seguro->id,
+                    'ramo_id' => $ramo->id,
+                    'fecha_expedicion' => Carbon::now(),
+                    'usuario_id' => auth()->id(),  // Asigna el usuario autenticado
+                ]));
+
+                // Guardar el archivo PDF en el almacenamiento
+                $rutaArchivo = $archivo->store('polizas/' . $compania->nombre, 'public');
+                $poliza->ruta_pdf = $rutaArchivo;
+                $poliza->save();
+
+                $polizas[] = $poliza;
             }
 
             return $polizas;
@@ -111,12 +143,14 @@ public function store(StorePolizaRequest $request)
         return redirect()->route('polizas.index')
             ->with('success', 'Pólizas cargadas exitosamente. Total: ' . count($polizasCreadas));
     } catch (Exception $e) {
-        Log::error($e->getMessage());
+        Log::error("Error al procesar las pólizas: " . $e->getMessage());
         return redirect()->back()
-            ->withErrors(['general' => 'Error al procesar los PDFs.'])
+            ->withErrors(['general' => 'Error al procesar los PDFs. ' . $e->getMessage()])
             ->withInput();
     }
 }
+
+
 
 
     public function show(string $id)
