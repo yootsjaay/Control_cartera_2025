@@ -8,6 +8,7 @@ use App\Models\Seguro;
 use App\Models\Ramo;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
+use App\Services\DateTime;
 use Exception;
 
 class HdiSegurosService implements SeguroServiceInterface
@@ -23,16 +24,18 @@ class HdiSegurosService implements SeguroServiceInterface
     {
         // Validaciones de seguro y ramo
         $this->validarSeguroYramo($seguro, $ramo);
-
+    
         try {
             $text = $this->extractText($archivo); // Usa el nuevo método extractText
             Log::info("Texto extraído:", ['data' => substr($text, 0, 500)]);
-            return $this->procesarTexto($text, $ramo);
+            $texto= $this->procesarTexto($text, $ramo, $seguro); // 
+            dd($texto);
         } catch (Exception $e) {
             Log::error("Error al procesar el PDF: " . $e->getMessage());
             throw new InvalidArgumentException("No se pudo procesar el archivo PDF: " . $e->getMessage());
         }
     }
+    
 
 
     private function extractText(UploadedFile $archivo): string
@@ -40,6 +43,7 @@ class HdiSegurosService implements SeguroServiceInterface
         try {
             $pdf = $this->parser->parseFile($archivo->getPathname()); // Usa el parser inyectado
             return $pdf->getText();
+           
         } catch (\Exception $e) {
             Log::error("Error al parsear el PDF: " . $e->getMessage());
             throw new Exception("Error al procesar el PDF.");
@@ -142,8 +146,8 @@ class HdiSegurosService implements SeguroServiceInterface
         // Total a pagar
         $datos['total_pagar'] = $this->extraerTotalPagar($text);
     
-       // return $datos;
-       dd($datos);
+        return $datos;
+       //dd($datos);
     }
     private function validarSeguroYramo(Seguro $seguro, Ramo $ramo): void
     {
@@ -208,8 +212,8 @@ private function procesarAutosPickup(string $text): array
         $datos['total_pagar'] = $ultimo_monto ? (float) str_replace(',', '', $ultimo_monto) : 0.00;
     }
 
-    //return $datos;
-   dd($datos);
+    return $datos;
+   //dd($datos);
 }
     
     

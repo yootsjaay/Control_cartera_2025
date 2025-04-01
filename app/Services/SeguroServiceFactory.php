@@ -2,41 +2,43 @@
 
 namespace App\Services;
 
+use App\Models\Compania; // Importamos el modelo de compañía
 use App\Services\SeguroServiceInterface;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Log;
 
 class SeguroServiceFactory
 {
-    protected $servicios;
-
-    public function __construct(array $servicios = [])
-    {
-        $this->servicios = $servicios;
-    }
-
     public function crearSeguroService(string $nombreCompania): SeguroServiceInterface
     {
-        if (!isset($this->servicios[$nombreCompania])) {
-            throw new \InvalidArgumentException("Compañía '{$nombreCompania}' no está soportada.");
+        // Obtener la compañía desde la base de datos
+        $compania = Compania::where('nombre', $nombreCompania)->first();
+
+        if (!$compania || empty($compania->servicio_clase)) {
+            throw new \InvalidArgumentException("Compañía '{$nombreCompania}' no está soportada o no tiene un servicio asociado.");
         }
 
-        $serviceClass = $this->servicios[$nombreCompania];
-        $service = app($serviceClass);
+        $serviceClass = $compania->servicio_clase;
 
-        if (!$service instanceof SeguroServiceInterface) {
-            throw new \InvalidArgumentException("El servicio '{$serviceClass}' no implementa SeguroServiceInterface.");
+        // Intentar instanciar el servicio
+        try {
+            $service = app($serviceClass);
+
+            if (!$service instanceof SeguroServiceInterface) {
+                throw new \InvalidArgumentException("El servicio '{$serviceClass}' no implementa SeguroServiceInterface.");
+            }
+
+            return $service;
+        } catch (\Exception $e) {
+            Log::error("Error al crear el servicio de seguro para {$nombreCompania}: " . $e->getMessage());
+            throw new \InvalidArgumentException("Error al crear el servicio de seguro para '{$nombreCompania}'.");
         }
-
-        return $service;
     }
-
-
 
     public function createFromRequest(Request $request): SeguroServiceInterface
     {
-        // Obtienes el nombre de la compañía del request
-        $nombreCompania = $request->input('compania_nombre');
+        // Obtener el nombre de la compañía del request
+        $nombreCompania = $request->input('nombre');
 
         // Crear el servicio a partir del nombre de la compañía
         return $this->crearSeguroService($nombreCompania);
