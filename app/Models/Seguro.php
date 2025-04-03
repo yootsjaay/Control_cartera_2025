@@ -43,9 +43,12 @@ class Seguro extends Model
 	}
 
 	public function companias()
-	{
-		return $this->belongsToMany(Compania::class)
-					->withPivot('id')
-					->withTimestamps();
-	}
+{
+    return $this->belongsToMany(Compania::class)
+                ->withPivot('id')  // Si necesitas acceder al campo 'id' de la tabla pivote
+                ->withTimestamps();
+}
+
+
+
 }

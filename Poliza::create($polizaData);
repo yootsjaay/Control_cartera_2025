@@ -1,0 +1,15 @@
+[90m= [39m[
+    "[34mnumero_poliza[39m" => "[32m173-13342-1[39m",
+    "[34mvigencia_inicio[39m" => "[32m2024-12-22[39m",
+    "[34mvigencia_fin[39m" => "[32m2025-12-22[39m",
+    "[34mforma_pago[39m" => "[32mTRIMESTRAL EFECTIVO[39m",
+    "[34mtotal_a_pagar[39m" => [33m5091.42[39m,
+    "[34mstatus[39m" => "[32mactiva[39m",
+    "[34mcliente_id[39m" => [36mnull[39m,
+    "[34magente_id[39m" => [36mnull[39m,
+    "[34mcompania_id[39m" => [35m7[39m,
+    "[34muser_id[39m" => [35m1[39m,
+    "[34mseguro_id[39m" => [35m1[39m,
+    "[34mramo_id[39m" => [35m1[39m,
+  ]
+

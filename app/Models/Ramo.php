@@ -34,10 +34,4 @@ class Ramo extends Model
 	{
 		return $this->hasMany(Seguro::class);
 	}
-	public function companias()
-{
-    return $this->belongsToMany(Compania::class, 'compania_ramo'); // Asegúrate de usar el nombre correcto de la tabla pivot
-}
-
-
 }

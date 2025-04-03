@@ -46,4 +46,6 @@ class CompaniaSeguro extends Model
 	{
 		return $this->belongsTo(Seguro::class);
 	}
+	
+
 }

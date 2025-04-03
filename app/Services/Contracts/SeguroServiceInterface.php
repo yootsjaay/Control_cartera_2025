@@ -1,5 +1,5 @@
 <?php 
-namespace App\Services;
+namespace App\Services\Contracts;
 use Illuminate\Http\UploadedFile;
 use App\Models\Seguro;
 use App\Models\Ramo;

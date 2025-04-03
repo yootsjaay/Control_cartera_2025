@@ -363,13 +363,13 @@ class ComposerStaticInitcbed58921fb40526dd756235091dd357
         ),
         'Spatie\\LaravelIgnition\\' => 
         array (
-            0 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/laravel-ignition',
-            1 => __DIR__ . '/..' . '/spatie/laravel-ignition/src',
+            0 => __DIR__ . '/..' . '/spatie/laravel-ignition/src',
+            1 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/laravel-ignition',
         ),
         'Spatie\\Ignition\\' => 
         array (
-            0 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/ignition',
-            1 => __DIR__ . '/..' . '/spatie/ignition/src',
+            0 => __DIR__ . '/..' . '/spatie/ignition/src',
+            1 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/ignition',
         ),
         'Spatie\\FlareClient\\' => 
         array (
@@ -708,11 +708,11 @@ class ComposerStaticInitcbed58921fb40526dd756235091dd357
         'App\\Providers\\EventServiceProvider' => __DIR__ . '/../..' . '/app/Providers/EventServiceProvider.php',
         'App\\Providers\\RouteServiceProvider' => __DIR__ . '/../..' . '/app/Providers/RouteServiceProvider.php',
         'App\\Services\\BanorteSeguroService' => __DIR__ . '/../..' . '/app/Services/BanorteSeguroService.php',
+        'App\\Services\\Contracts\\SeguroServiceInterface' => __DIR__ . '/../..' . '/app/Services/Contracts/SeguroServiceInterface.php',
+        'App\\Services\\Factories\\SeguroServiceFactory' => __DIR__ . '/../..' . '/app/Services/Factories/SeguroServiceFactory.php',
         'App\\Services\\GmxSeguroService' => __DIR__ . '/../..' . '/app/Services/GmxSeguroService.php',
         'App\\Services\\HdiSegurosService' => __DIR__ . '/../..' . '/app/Services/HdiSegurosService.php',
         'App\\Services\\PolizaService' => __DIR__ . '/../..' . '/app/Services/PolizaService.php',
-        'App\\Services\\SeguroServiceFactory' => __DIR__ . '/../..' . '/app/Services/SeguroServiceFactory.php',
-        'App\\Services\\SeguroServiceInterface' => __DIR__ . '/../..' . '/app/Services/SeguroServiceInterface.php',
         'App\\View\\Components\\AppLayout' => __DIR__ . '/../..' . '/app/View/Components/AppLayout.php',
         'App\\View\\Components\\GuestLayout' => __DIR__ . '/../..' . '/app/View/Components/GuestLayout.php',
         'Attribute' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/Attribute.php',
@@ -4192,7 +4192,6 @@ class ComposerStaticInitcbed58921fb40526dd756235091dd357
         'Monolog\\Registry' => __DIR__ . '/..' . '/monolog/monolog/src/Monolog/Registry.php',
         'Monolog\\ResettableInterface' => __DIR__ . '/..' . '/monolog/monolog/src/Monolog/ResettableInterface.php',
         'Monolog\\SignalHandler' => __DIR__ . '/..' . '/monolog/monolog/src/Monolog/SignalHandler.php',
-        'Monolog\\Test\\MonologTestCase' => __DIR__ . '/..' . '/monolog/monolog/src/Monolog/Test/MonologTestCase.php',
         'Monolog\\Test\\TestCase' => __DIR__ . '/..' . '/monolog/monolog/src/Monolog/Test/TestCase.php',
         'Monolog\\Utils' => __DIR__ . '/..' . '/monolog/monolog/src/Monolog/Utils.php',
         'Nette\\ArgumentOutOfRangeException' => __DIR__ . '/..' . '/nette/utils/src/exceptions.php',
@@ -6521,12 +6520,7 @@ class ComposerStaticInitcbed58921fb40526dd756235091dd357
         'Smalot\\PdfParser\\Encoding\\PostScriptGlyphs' => __DIR__ . '/..' . '/smalot/pdfparser/src/Smalot/PdfParser/Encoding/PostScriptGlyphs.php',
         'Smalot\\PdfParser\\Encoding\\StandardEncoding' => __DIR__ . '/..' . '/smalot/pdfparser/src/Smalot/PdfParser/Encoding/StandardEncoding.php',
         'Smalot\\PdfParser\\Encoding\\WinAnsiEncoding' => __DIR__ . '/..' . '/smalot/pdfparser/src/Smalot/PdfParser/Encoding/WinAnsiEncoding.php',
-        'Smalot\\PdfParser\\Exception\\EmptyPdfException' => __DIR__ . '/..' . '/smalot/pdfparser/src/Smalot/PdfParser/Exception/EmptyPdfException.php',
         'Smalot\\PdfParser\\Exception\\EncodingNotFoundException' => __DIR__ . '/..' . '/smalot/pdfparser/src/Smalot/PdfParser/Exception/EncodingNotFoundException.php',
-        'Smalot\\PdfParser\\Exception\\InvalidDictionaryObjectException' => __DIR__ . '/..' . '/smalot/pdfparser/src/Smalot/PdfParser/Exception/InvalidDictionaryObjectException.php',
-        'Smalot\\PdfParser\\Exception\\MissingCatalogException' => __DIR__ . '/..' . '/smalot/pdfparser/src/Smalot/PdfParser/Exception/MissingCatalogException.php',
-        'Smalot\\PdfParser\\Exception\\MissingPdfHeaderException' => __DIR__ . '/..' . '/smalot/pdfparser/src/Smalot/PdfParser/Exception/MissingPdfHeaderException.php',
-        'Smalot\\PdfParser\\Exception\\NotImplementedException' => __DIR__ . '/..' . '/smalot/pdfparser/src/Smalot/PdfParser/Exception/NotImplementedException.php',
         'Smalot\\PdfParser\\Font' => __DIR__ . '/..' . '/smalot/pdfparser/src/Smalot/PdfParser/Font.php',
         'Smalot\\PdfParser\\Font\\FontCIDFontType0' => __DIR__ . '/..' . '/smalot/pdfparser/src/Smalot/PdfParser/Font/FontCIDFontType0.php',
         'Smalot\\PdfParser\\Font\\FontCIDFontType2' => __DIR__ . '/..' . '/smalot/pdfparser/src/Smalot/PdfParser/Font/FontCIDFontType2.php',

@@ -6,6 +6,8 @@ use App\Models\{Cliente, Agente, Poliza, Compania, Seguro, Ramo};
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
+use App\Services\Factories\SeguroServiceFactory;
+
 use Exception;
 
 class PolizaService
@@ -87,36 +89,37 @@ class PolizaService
             ['nombre_agentes' => $datosExtraidos['nombre_agente']]
         );
     }
-
     protected function guardarPoliza(Request $request, UploadedFile $archivo, array $datosExtraidos, Cliente $cliente, Agente $agente, $user, Compania $compania, Seguro $seguro, Ramo $ramo): Poliza
     {
         try {
-            // Crear la póliza en la base de datos
-            $poliza = Poliza::create([
-                'numero_poliza' => $datosExtraidos['numero_poliza'],
-                'vigencia_inicio' => $datosExtraidos['vigencia_inicio'] ?? null,
-                'vigencia_fin' => $datosExtraidos['vigencia_fin'] ?? null,
-                'forma_pago' => $datosExtraidos['forma_pago'] ?? null,
-                'total_a_pagar' => $datosExtraidos['total_pagar'],
-                'status' => 'activa',
-                'cliente_id' => $cliente->id,
-                'compania_id' => $compania->id,
-                'user_id' => $user->id,
-            ]);
-
-            // Guardar el archivo PDF
-            $pdfPath = $archivo->store('polizas', 'public');
-            $poliza->archivo_pdf = $pdfPath;
-            $poliza->save();
-
-            // Registrar la creación de la póliza
-            Log::info('Póliza creada:', [
-                'numero_poliza' => $poliza->numero_poliza,
-                'archivo' => $pdfPath,
-                'user_id' => $user->id,
-            ]);
-
-            return $poliza;
+            return \DB::transaction(function () use ($request, $archivo, $datosExtraidos, $cliente, $agente, $user, $compania, $seguro, $ramo) {
+                // Crear la póliza en la base de datos
+                $poliza = Poliza::create([
+                    'numero_poliza' => $datosExtraidos['numero_poliza'],
+                    'vigencia_inicio' => $datosExtraidos['vigencia_inicio'] ?? null,
+                    'vigencia_fin' => $datosExtraidos['vigencia_fin'] ?? null,
+                    'forma_pago' => $datosExtraidos['forma_pago'] ?? null,
+                    'total_a_pagar' => $datosExtraidos['total_pagar'],
+                    'status' => 'activa',
+                    'cliente_id' => $cliente->id,
+                    'compania_id' => $compania->id,
+                    'user_id' => $user->id,
+                ]);
+    
+                // Guardar el archivo PDF
+                $pdfPath = $archivo->store('polizas', 'public');
+                $poliza->archivo_pdf = $pdfPath;
+                $poliza->save();
+    
+                // Registrar la creación de la póliza
+                Log::info('Póliza creada:', [
+                    'numero_poliza' => $poliza->numero_poliza,
+                    'archivo' => $pdfPath,
+                    'user_id' => $user->id,
+                ]);
+    
+                return $poliza;
+            });
         } catch (Exception $e) {
             Log::error('Error al procesar el PDF ' . $archivo->getClientOriginalName(), [
                 'exception' => $e->getMessage(),
@@ -126,4 +129,5 @@ class PolizaService
             throw $e;
         }
     }
+    
 }

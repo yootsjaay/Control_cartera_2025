@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Factories;
 
 use App\Models\Compania; // Importamos el modelo de compañía
-use App\Services\SeguroServiceInterface;
+use App\Services\Contracts\SeguroServiceInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 

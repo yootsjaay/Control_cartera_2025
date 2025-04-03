@@ -6,9 +6,10 @@ use Illuminate\Http\UploadedFile;
 use Smalot\PdfParser\Parser;
 use App\Models\Seguro;
 use App\Models\Ramo;
+use App\Services\Contracts\SeguroServiceInterface;
 use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
-use App\Services\DateTime;
+use DateTime;
 use Exception;
 
 class HdiSegurosService implements SeguroServiceInterface
@@ -25,16 +26,28 @@ class HdiSegurosService implements SeguroServiceInterface
         // Validaciones de seguro y ramo
         $this->validarSeguroYramo($seguro, $ramo);
     
+        // Verificar que el archivo sea un PDF
+        if ($archivo->getClientMimeType() !== 'application/pdf') {
+            throw new InvalidArgumentException("El archivo proporcionado no es un PDF.");
+        }
+    
         try {
             $text = $this->extractText($archivo); // Usa el nuevo método extractText
-            Log::info("Texto extraído:", ['data' => substr($text, 0, 500)]);
-            $texto= $this->procesarTexto($text, $ramo, $seguro); // 
-            dd($texto);
+            Log::info("Texto extraído exitosamente", [
+                'seguro' => $seguro->nombre,
+                'ramo' => $ramo->nombre,
+                'data' => substr($text, 0, 500),
+            ]);
+            return $this->procesarTexto($text, $ramo, $seguro);
+        } catch (PdfParseException $e) {
+            Log::error("Error al extraer texto del PDF: " . $e->getMessage());
+            throw new InvalidArgumentException("No se pudo extraer el texto del PDF: " . $e->getMessage());
         } catch (Exception $e) {
             Log::error("Error al procesar el PDF: " . $e->getMessage());
             throw new InvalidArgumentException("No se pudo procesar el archivo PDF: " . $e->getMessage());
         }
     }
+    
     
 
 
@@ -108,15 +121,13 @@ class HdiSegurosService implements SeguroServiceInterface
             $datos['nombre_cliente'] = 'SIN NOMBRE';
         }
     
-        // RFC
-        $datos['rfc'] = $this->extraerDato($text, '/RFC:\s*([A-Z0-9]+)/i') ?? 'N/A';
-    
-        // Número de póliza
-        if (preg_match('/No\.\s*(?:de\s*)?Póliza:\s*([\d\s\-]+)/i', $text, $matches)) {
-            $datos['numero_poliza'] = preg_replace('/\s+/', '', $matches[1]);
-        } else {
-            $datos['numero_poliza'] = 'N/A';
-        }
+       // RFC (con validación de longitud)
+    $datos['rfc'] = $this->extraerDato($text, '/RFC:\s*([A-Z0-9]{12,13})\b/i') ?? 'N/A';
+
+    // Verificar RFC vacío o inválido
+    if ($datos['rfc'] === 'N/A' || strlen($datos['rfc']) < 12) {
+        Log::error("RFC no válido o no encontrado", ['text' => substr($text, 0, 300)]);
+    }
     
         // Vigencia
         if (preg_match('/Vigencia:.*?(\d{2}[\/\-]\w{3}[\/\-]\d{4}).*?(\d{2}[\/\-]\w{3}[\/\-]\d{4})/si', $text, $matches)) {
@@ -147,7 +158,7 @@ class HdiSegurosService implements SeguroServiceInterface
         $datos['total_pagar'] = $this->extraerTotalPagar($text);
     
         return $datos;
-       //dd($datos);
+      
     }
     private function validarSeguroYramo(Seguro $seguro, Ramo $ramo): void
     {
@@ -157,9 +168,9 @@ class HdiSegurosService implements SeguroServiceInterface
         }
         // aqui agregar validaciones.
     }
-//PROCESAR AUTOS : 
-private function procesarAutosPickup(string $text): array
-{
+    //PROCESAR AUTOS : 
+    private function procesarAutosPickup(string $text): array
+    {
     $datos = [];
 
     // Nombre del cliente
@@ -212,8 +223,9 @@ private function procesarAutosPickup(string $text): array
         $datos['total_pagar'] = $ultimo_monto ? (float) str_replace(',', '', $ultimo_monto) : 0.00;
     }
 
-    return $datos;
-   //dd($datos);
+  return $datos;
+  
+  
 }
     
     
@@ -234,7 +246,7 @@ private function extraerDato(string $text, string $pattern, $default = null)
         // Nombre del agente (antes de "Datos de la póliza:")
         $datos['nombre_agente'] = $this->extraerDatos($text, '/Nombre:\s*([A-ZÁÉÍÓÚÑ\s\.\-]+)(?=[\s\S]*Datos de la póliza:)/i', fn($match) => trim($match)) ?: 'AGENTE NO ESPECIFICADO';
     
-        dd($datos); // Depuración activa
+      //  dd($datos); // Depuración activa
         //return $datos;
     }
     
@@ -246,7 +258,7 @@ private function extraerDato(string $text, string $pattern, $default = null)
         $datos['numero_agente'] = $this->extraerDatos($text, '/Clave:\s*(\d+)/i') ?: 'N/A';
         $datos['nombre_agente'] = $this->extraerDatos($text, '/Clave:\s*\d+\s*Nombre:\s*([^\n]+)/i', $this->limpiarTexto(...)) ?: 'AGENTE NO ESPECIFICADO';
     
-        dd($datos); // Depuración activa
+    //    dd($datos); // Depuración activa
         //return $datos;
     }
     
@@ -296,8 +308,8 @@ private function extraerDato(string $text, string $pattern, $default = null)
             $datos['total_pagar'] = (float) str_replace(',', '', trim($matches[1]));
         }
     
-        return $datos;
-       //dd($datos);
+       // return $datos;
+       dd($datos);
     }
     private function procesarHdiCasa(string $text): array
     {
@@ -595,9 +607,4 @@ private function procesarCamionesMasDe_3_5(string $text): array
 {
     return $this->procesarComunCamiones($text);
 }
-
-
-   
-
-  
 }
