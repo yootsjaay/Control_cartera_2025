@@ -38,9 +38,10 @@ class Seguro extends Model
 	];
 
 	public function ramo()
-	{
-		return $this->belongsTo(Ramo::class);
-	}
+{
+    return $this->belongsTo(Ramo::class);
+}
+
 
 	public function companias()
 {

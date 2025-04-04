@@ -309,7 +309,7 @@ private function extraerDato(string $text, string $pattern, $default = null)
         }
     
        // return $datos;
-       dd($datos);
+    
     }
     private function procesarHdiCasa(string $text): array
     {

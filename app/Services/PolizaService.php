@@ -103,6 +103,7 @@ class PolizaService
                     'status' => 'activa',
                     'cliente_id' => $cliente->id,
                     'compania_id' => $compania->id,
+                    'seguro_id'=> $seguro->id,
                     'user_id' => $user->id,
                 ]);
     

@@ -14,7 +14,7 @@ class DatabaseSeeder extends Seeder
         $ramos = [
             'Vida' => [
                 'seguros' => ['Seguro de Vida Individual', 'Grupo vida', 'Seguro de inversión', 'De retiro'],
-                'companias' => ['Thona Seguros', 'Banorte Seguros', 'Insignia Lite', 'Alianz', 'Metlife', 'General de Seguros']
+                'companias' => ['Thona Seguros', 'Banorte Seguros', 'Insignia Life', 'Allianz', 'Metlife', 'General de Seguros']
             ],
             'Daños' => [
                 'seguros' => ['Seguro de Daños empresa', 'Casa', 'Transporte'],

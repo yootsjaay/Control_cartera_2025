@@ -55,7 +55,8 @@ class Poliza extends Model
 		'status',
 		'compania_id',
 		'cliente_id',
-		'user_id'
+		'user_id',
+		'seguro_id'
 	];
 
 	public function cliente()
@@ -88,6 +89,7 @@ class Poliza extends Model
 // Relación a través de la tabla intermedia para acceder a Seguro
 public function seguro()
 {
-    return $this->hasOneThrough(Seguro::class, CompaniaSeguro::class, 'compania_id', 'id', 'compania_id', 'seguro_id');
+    return $this->belongsTo(Seguro::class);
 }
+
 }

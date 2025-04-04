@@ -23,6 +23,7 @@ return new class extends Migration
             $table->foreignId('compania_id')->constrained('companias')->onDelete('cascade');
             $table->foreignId('cliente_id')->constrained('clientes')->onDelete('cascade');
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->foreignId('seguro_id')->constrained('seguros')->onDelete('cascade');
             $table->timestamps();
             $table->index(['vigencia_inicio', 'vigencia_fin']);
         });
