@@ -318,7 +318,7 @@ private function extraerDato(string $text, string $pattern, int $group = 1): ?st
 }
 
 
-    private function procesarCivilViajero(string $text): array
+    private function procesarTransporte(string $text): array
     {
         $datos = $this->procesarDatosComunes($text);
 
@@ -327,8 +327,7 @@ private function extraerDato(string $text, string $pattern, int $group = 1): ?st
         // Nombre del agente (antes de "Datos de la póliza:")
         $datos['nombre_agente'] = $this->extraerDatos($text, '/Nombre:\s*([A-ZÁÉÍÓÚÑ\s\.\-]+)(?=[\s\S]*Datos de la póliza:)/i', fn($match) => trim($match)) ?: 'AGENTE NO ESPECIFICADO';
 
-      //  dd($datos); // Depuración activa
-        //return $datos;
+      return $datos; 
     }
 
     private function procesarEmbarcaciones(string $text): array
@@ -339,8 +338,7 @@ private function extraerDato(string $text, string $pattern, int $group = 1): ?st
         $datos['numero_agente'] = $this->extraerDatos($text, '/Clave:\s*(\d+)/i') ?: 'N/A';
         $datos['nombre_agente'] = $this->extraerDatos($text, '/Clave:\s*\d+\s*Nombre:\s*([^\n]+)/i', $this->limpiarTexto(...)) ?: 'AGENTE NO ESPECIFICADO';
 
-    //    dd($datos); // Depuración activa
-        //return $datos;
+   return $datos;
     }
 
     private function extraerTotalPagar(string $text): float
@@ -389,36 +387,66 @@ private function extraerDato(string $text, string $pattern, int $group = 1): ?st
             $datos['total_pagar'] = (float) str_replace(',', '', trim($matches[1]));
         }
 
-       // return $datos;
+        return $datos;
 
     }
-    private function procesarHdiCasa(string $text): array
+    private function procesarDatosComunesDos(string $text): array
     {
-        $datos = $this->procesarDatosComunes($text);
-
-        // Datos específicos de HDI Casa
-        if (preg_match('/Clave:\s*(\d+)\s*Nombre:\s*([A-ZÁÉÍÓÚÑa-záéíóúñ\s]+)(?=\n|$)/i', $text, $matches)) {
-            $datos['numero_agente'] = trim($matches[1]);
-            $datos['nombre_agente'] = trim($matches[2]);
+        $datos = [];
+        $meses = [
+            'ENE' => '01', 'FEB' => '02', 'MAR' => '03', 'ABR' => '04',
+            'MAY' => '05', 'JUN' => '06', 'JUL' => '07', 'AGO' => '08',
+            'SEP' => '09', 'OCT' => '10', 'NOV' => '11', 'DIC' => '12'
+        ];
+        
+    
+        // Vigencia
+        if (preg_match('/Vigencia:\s*Desde.*?(\d{2}\/[A-Z]{3}\/\d{4}).*?Hasta.*?(\d{2}\/[A-Z]{3}\/\d{4})/i', $text, $matches)) {
+            $datos['vigencia_inicio'] = $this->formatearFechaMedico($matches[1], $meses);
+            $datos['vigencia_fin'] = $this->formatearFechaMedico($matches[2], $meses);
         } else {
-            $datos['numero_agente'] = '000000';
-            $datos['nombre_agente'] = 'N/A';
-        }
-
-        // Ajuste para vigencia (usa '0000-00-00' en lugar de null)
-        if ($datos['vigencia_inicio'] === null) {
             $datos['vigencia_inicio'] = '0000-00-00';
             $datos['vigencia_fin'] = '0000-00-00';
         }
-
-        // Ajuste específico para total_pagar (prioriza "Prima Total $...")
-        if (preg_match('/Prima Total\s*\$([\d,]+\.\d{2})/i', $text, $matches)) {
-            $datos['total_pagar'] = (float) str_replace(',', '', trim($matches[1]));
+    
+        // Forma de pago
+        $datos['forma_pago'] = $this->extraerDato($text, '/Forma\s+de\s+pago:\s*(ANUAL\s+EFECTIVO|Pago\s+Fraccionado|Mensualidad)/i') ?? 'ANUAL EFECTIVO';
+    
+        // Nombre cliente (línea posterior a "Nombre:")
+        $nombre = $this->extraerDato($text, '/Nombre:\s*([A-ZÁÉÍÓÚÑ\s\.\-]+)(?=\n\s*Domicilio Fiscal:)/i');
+        $datos['nombre_cliente'] = $nombre ? preg_replace('/\s+/', ' ', trim($nombre)) : 'NOMBRE NO ENCONTRADO';
+    
+        // RFC
+        $datos['rfc'] = $this->extraerDato($text, '/RFC:\s*([A-Z0-9]{10,13})/i') ?? 'N/A';
+    
+        // Agente
+        $datos['numero_agente'] = $this->extraerDato($text, '/Clave:\s*(\d{6})/i') ?? '000000';
+        $datos['nombre_agente'] = $this->extraerDato($text, '/Nombre:\s*([A-ZÁÉÍÓÚÑ\s]+)/i') ?? 'AGENTE NO ESPECIFICADO';
+    
+        // Total a pagar (prima total)
+        if (preg_match('/Prima\s+Total\s+\$([\d,]+\.\d{2})/i', $text, $matches)) {
+            $datos['total_pagar'] = (float) str_replace(',', '', $matches[1]);
+        } else {
+            $datos['total_pagar'] = 0.0;
         }
+    
+        // Número de póliza
+        $numeroPoliza = $this->extraerDato($text, '/No\. de Póliza:\s*([\d\s\-]+)/i');
+        $datos['numero_poliza'] = $numeroPoliza && preg_match('/^[\d\s\-]+$/', $numeroPoliza) ? preg_replace('/\s+/', '', $numeroPoliza) : $datos['numero_poliza'];
 
         return $datos;
+       
     }
-    private function procesarHdiEmpresa(string $text): array
+    
+    private function procesarCasa(string $text): array
+    {
+        $datos = $this->procesarDatosComunesDos($text);
+    
+     
+         return $datos;
+    }
+    
+    private function procesarDaniosEmpresa(string $text): array
     {
         $datos = $this->procesarDatosComunes($text);
 
@@ -531,9 +559,6 @@ private function extraerDato(string $text, string $pattern, int $group = 1): ?st
         return $datos;
     }
 
-
-
-
 private function extraerMonto(string $text, string $pattern): ?float
 {
     if (preg_match($pattern, $text, $matches)) {
@@ -541,8 +566,5 @@ private function extraerMonto(string $text, string $pattern): ?float
     }
     return null;
 }
-
-
-
 
 }
