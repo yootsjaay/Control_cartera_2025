@@ -7,7 +7,7 @@
     <h1 class="mt-4 text-center">Gestión de Pólizas</h1>
     <ol class="breadcrumb mb-4">
         <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Inicio</a></li>
-        <li class="breadcrumb-item"><a href="{{ route('companias.index') }}">Compañía</a></li>
+        <li class="breadcrumb-item"><a href="{{ route('polizas.index') }}">Lista de Polizas</a></li>
         <li class="breadcrumb-item active">Registrar</li>
     </ol>
 

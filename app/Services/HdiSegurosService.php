@@ -53,8 +53,8 @@ class HdiSegurosService implements SeguroServiceInterface
         try {
             $pdf = $this->parser->parseFile($archivo->getPathname()); // Usa el parser inyectado
             $text= $pdf->getText();
-         return $text;
-        //dd($text);
+           return $text;
+           dd($text);
 
         } catch (\Exception $e) {
             Log::error("Error al parsear el PDF: " . $e->getMessage());
@@ -260,13 +260,63 @@ private function extraerNombreVehiculos(string $text, array $config): string
             Log::error("RFC no válido", ['text' => substr($text, 0, 300)]);
         }
     }
-    private function extraerDato(string $text, string $pattern, int $group = 1): ?string
-    {
-        if (preg_match($pattern, $text, $matches) && isset($matches[$group])) {
-            return trim($matches[$group]);
-        }
-        return null;
+  
+private function procesarGastosMedicosMayores(string $text): array
+{
+    $datos = [];
+    $meses = [
+        'ENE' => '01', 'FEB' => '02', 'MAR' => '03', 'ABR' => '04',
+        'MAY' => '05', 'JUN' => '06', 'JUL' => '07', 'AGO' => '08',
+        'SEP' => '09', 'OCT' => '10', 'NOV' => '11', 'DIC' => '12'
+    ];
+
+    // Extracción común de fechas
+    if (preg_match('/Las\s+(\d{2}:\d{2})\s+hrs\.\s+del\s+día\s+(\d{1,2}\/\w{3}\/\d{4}).*?Las\s+(\d{2}:\d{2})\s+hrs\.\s+del\s+día\s+(\d{1,2}\/\w{3}\/\d{4})/is', $text, $matches)) {
+        $datos['vigencia_inicio'] = $this->formatearFechaMedico($matches[2], $meses);
+        $datos['vigencia_fin'] = $this->formatearFechaMedico($matches[4], $meses);
     }
+
+    // Campos comunes
+    $campos = [
+        'nombre_cliente' => '/Dirección:\s*(.+)/i',
+        'rfc' => '/R\.F\.C\.\:\s*([A-Z0-9]+)/i',
+        'forma_pago' => '/(ANUAL\s+EFECTIVO|Pago\s+Fraccionado|Mensualidad)/i',
+        'numero_agente' => '/Oficina:.*\t(\d{6})Agente:/i',
+        'nombre_agente' => '/Agente:\t([A-Za-zÁÉÍÓÚáéíóúñÑ\s]+)/i'
+    ];
+
+    foreach ($campos as $key => $pattern) {
+        $datos[$key] = $this->extraerDato($text, $pattern) ?? match($key) {
+            'forma_pago' => 'ANUAL EFECTIVO',
+            'numero_agente' => '000000',
+            'nombre_agente' => 'AGENTE NO ESPECIFICADO',
+            default => null
+        };
+    }
+
+    // Asegúrate de que 'numero_poliza' también tenga su patrón aquí
+    $datos['numero_poliza'] = $this->extraerDato($text, '/P[ÓO]LIZA[:\s]*([A-Z0-9\-]+)/i') ?? $this->extraerDato($text, '/(\d{6})\s+ZONA/i');
+ // Total a pagar (usa variaciones comunes)
+ preg_match('/[\d,]+\.\d{2}/', $text, $matches);
+ $datos['total_pagar'] = isset($matches[0]) ? (float)str_replace(',', '', $matches[0]) : 0.0;
+
+     return $datos;
+   
+}
+
+private function formatearFechaMedico(string $fecha, array $meses): string
+{
+    [$dia, $mes, $anio] = explode('/', $fecha);
+    return sprintf('%s-%s-%s', $anio, $meses[strtoupper($mes)] ?? '01', $dia);
+}
+private function extraerDato(string $text, string $pattern, int $group = 1): ?string
+{
+    if (preg_match($pattern, $text, $matches) && isset($matches[$group])) {
+        return trim($matches[$group]);
+    }
+    return null;
+}
+
 
     private function procesarCivilViajero(string $text): array
     {
@@ -493,76 +543,6 @@ private function extraerMonto(string $text, string $pattern): ?float
 }
 
 
-
-
-private function procesarComun(string $text): array
-{
-    $datos = [];
-    $meses = [
-        'ENE' => '01', 'FEB' => '02', 'MAR' => '03', 'ABR' => '04',
-        'MAY' => '05', 'JUN' => '06', 'JUL' => '07', 'AGO' => '08',
-        'SEP' => '09', 'OCT' => '10', 'NOV' => '11', 'DIC' => '12'
-    ];
-
-    // Extracción común de fechas
-    if (preg_match('/Las\s+(\d{2}:\d{2})\s+hrs\.\s+del\s+día\s+(\d{1,2}\/\w{3}\/\d{4}).*?Las\s+(\d{2}:\d{2})\s+hrs\.\s+del\s+día\s+(\d{1,2}\/\w{3}\/\d{4})/is', $text, $matches)) {
-        $datos['vigencia_inicio'] = $this->formatearFechaMedico($matches[2], $meses);
-        $datos['vigencia_fin'] = $this->formatearFechaMedico($matches[4], $meses);
-    }
-
-    // Campos comunes
-    $campos = [
-        'nombre_cliente' => '/Dirección:\s*(.+)/i',
-        'rfc' => '/R\.F\.C\.\:\s*([A-Z0-9]+)/i',
-        'forma_pago' => '/(ANUAL\s+EFECTIVO|Pago\s+Fraccionado|Mensualidad)/i',
-        'numero_agente' => '/Oficina:.*\t(\d{6})Agente:/i',
-        'nombre_agente' => '/Agente:\t([A-Za-zÁÉÍÓÚáéíóúñÑ\s]+)/i'
-    ];
-
-    foreach ($campos as $key => $pattern) {
-        $datos[$key] = $this->extraerDato($text, $pattern) ?? match($key) {
-            'forma_pago' => 'ANUAL EFECTIVO',
-            'numero_agente' => '000000',
-            'nombre_agente' => 'AGENTE NO ESPECIFICADO',
-            default => null
-        };
-    }
-
-    return $datos;
-    //dd($datos);
-}
-private function formatearFechaMedico(string $fecha, array $meses): string
-{
-    [$dia, $mes, $anio] = explode('/', $fecha);
-    return sprintf('%s-%s-%s', $anio, $meses[strtoupper($mes)] ?? '01', $dia);
-}
-private function procesarGastosMedicosMayores(string $text): array
-{
-    // Primera opción: MÉDICA TOTAL
-    $datos = $this->procesarComun($text);
-    $datos['numero_poliza'] = $this->extraerDato($text, '/Suma Asegurada:\s*(.+)/i');
-    
-    preg_match_all('/[\d,]+\.\d{2}/', $text, $matches);
-    $datos['total_pagar'] = isset($matches[0]) ? (float)str_replace(',', '', end($matches[0])) : 0.0;
-
-    // Validación: si encontramos número de póliza, regresamos ya
-    if (!empty($datos['numero_poliza'])) {
-        return $datos;
-    }
-
-    // Segunda opción: MÉDICA VITAL (si la TOTAL falló)
-    $datos['numero_poliza'] = $this->extraerDato($text, '/(\d{6})\s+ZONA/i');
-
-    // Solo si se encuentra una nueva póliza se reconsidera el monto
-    if (!empty($datos['numero_poliza'])) {
-        $valorExtraido = $this->extraerDato($text, '/Fecha de Efectividad:\s*(\d{1,3}(?:,\d{3})*\.\d{2})/i', true);
-        $datos['total_pagar'] = $this->extraerTotalMayores($text);
-    
-    }
-
-    return $datos;
-  //dd($datos);
-}
 
 
 }

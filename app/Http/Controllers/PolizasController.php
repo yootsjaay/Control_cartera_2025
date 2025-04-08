@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\{Cliente, Compania, Seguro, Poliza, Agente, Ramo};
