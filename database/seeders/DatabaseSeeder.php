@@ -17,7 +17,7 @@ class DatabaseSeeder extends Seeder
                 'companias' => ['Thona Seguros', 'Banorte Seguros', 'Insignia Life', 'Allianz', 'Metlife', 'General de Seguros']
             ],
             'Daños' => [
-                'seguros' => ['Seguro de Daños empresa', 'Casa', 'Transporte'],
+                'seguros' => ['Seguro de Daños empresa', 'Casa', 'Transporte','Embarcaciones','Rc Agentes', 'Maquinaria'],
                 'companias' => ['HDI Seguros', 'Banorte Seguros', 'Gmx Seguros', 'General de Seguros', 'Atlas Seguros']
             ],
             'Accidentes y enfermedades' => [
