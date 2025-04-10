@@ -10,38 +10,91 @@ use Exception;
 
 class BanorteSeguroService implements SeguroServiceInterface
 {
-    const RAMO_AUTOMOVILES_RESIDENTES = 'automoviles-residentes-banorte';
-    const RAMO_GASTOS_MEDICOS_INDIVIDUAL = 'gastos-medicos-mayores-individual';
-    const RAMO_GASTOS_MEDICOS_MAYORES_GRUPOS = 'gastos-medicos-mayores-grupo';
-
-    protected Parser $parser;
+    protected $parser;
 
     public function __construct(Parser $parser)
     {
-        $this->parser = $parser;
+        $this->parser= $parser;
     }
+
 
 
     public function extractToData(UploadedFile $archivo, Seguro $seguro, Ramo $ramo): array
     {
-        if ($seguro->compania->slug !== 'banorte-seguros') {
-            throw new InvalidArgumentException("El seguro seleccionado no pertenece a HDI.");
-        }
-
-        if ($ramo->id_seguros != $seguro->id) {
-            throw new InvalidArgumentException("El ramo seleccionado no corresponde al seguro proporcionado.");
-        }
-
-        try {
-            $text = $this->extractText($archivo); // Usa el nuevo método extractText
-            \Log::info("Texto extraído:", ['data' => substr($text, 0, 500)]);
-            return $this->procesarTexto($text, $ramo);
-           //dd($text);
-        } catch (Exception $e) {
-            \Log::error("Error al procesar el PDF: " . $e->getMessage());
-            throw new InvalidArgumentException("No se pudo procesar el archivo PDF: " . $e->getMessage());
+        $this->validaSeguroYamo($seguro, $ramo);
+        
+        //verificacion que el archovo sea un PDF
+        if($archivo->getClientMimeType() != 'application/pdf'){
+            throw new InvalidArgumentException('El archivo proporcionado no es un pdf');
+            try {
+                $text = $this->extractText($archivo);
+                Log::info("Texto Extraido Existosamente",[
+                    'seguro' => $seguro->nombre,
+                    'ramo'=> $ramo->nombre,
+                    'data'=> substr($text, 0, 500),
+                ]);
+                return $this->procesarText($text, $ramo, $seguro);
+            }catch (PdfParseException $e){
+                Log::error("Error al extraer texto del PDF:". $e->getMessage());
+                throw new InvalidArgumentException('no se pudo procesar el archivo PDF');
+            }catch (Exception $e){
+                Log::error("Error al procesar Pdf" . $e->getMessage());
+                throw InvalidArgumentException('No se pudo procesar el PDF');
+            }
         }
     }
+    private function extractText(UploadedFile $archivo): string
+    {
+        try {
+            $pdf = $this->parser->parseFile($archivo->getPathname());
+            $text = $pdf->getText();
+            return $text;
+        } catch (\Exception $e) {
+            \Log::error("Error al parsear el PDF: " . $e->getMessage());
+            throw new Exception("Error al procesar el PDF.");
+        }
+    }
+
+    private function procesarTexto(string $text, Ramo $ramo): array
+    {
+       $datosComunes = $this->procesarDatosComunes($text);
+
+       //mapear ramos y seguros especificos
+       $mapaProcesadores = [
+            'Vida' => [
+                'Seguro de Vida Individual',
+                ' Grupo vida', 
+                'Seguro de inversión',
+                'De retiro',
+            ],
+            'Daños'=> [
+                ' Seguro de Daños empresa',
+                 'Casa',
+                 'Transporte',
+                 'Embarcaciones',
+                 'Rc Agentes',
+                 'Maquinaria',
+            ],
+            'Accidentes y enfermedades'=>[
+                'Gastos Médicos Mayores', 
+                'Accidentes Personales', 
+                'Accidentes Personales Escolares'
+            ],
+            'Automóviles'=>[
+                'Autos pickup'=> 'procesarAutosResidentes',
+                'Camiones', 
+                'Tractos'
+            ],
+        ];
+        if(!isset($mapaProcesadores[$ramo->nombre][$seguro->nombre])){
+            throw  new InvalidArgumentException("No existe un procesador definido para el seguro'{$seguro->nombre}' de ramo '{$ramo->nombre}'.");
+        }
+        $metodoProcesadr = $mapaProcesadores[$ramo->nombre][$seguro->nombre];
+        $datosEspecificos = $this->metodoProcesador($text);
+
+        return array_merge($datosComunes, $datosEspecificos);
+    }
+
 
     private function extraerFecha(string $text, string $pattern, array $meses = []): ?array
     {
@@ -59,7 +112,7 @@ class BanorteSeguroService implements SeguroServiceInterface
         return ["$anio-$mesNum-$dia"];
     }
 
-private function extraerDatosComunes(string $text, array $config): array
+private function procesarDatosComunes(string $text, array $config): array
 {
     $datos = [];
 
@@ -130,31 +183,8 @@ private function getConfigAutosResidentes(): array
         ],
     ];
 }
-    private function extractText(UploadedFile $archivo): string
-    {
-        try {
-            $pdf = $this->parser->parseFile($archivo->getPathname());
-            $text = $pdf->getText();
-            return $text;
-        } catch (\Exception $e) {
-            \Log::error("Error al parsear el PDF: " . $e->getMessage());
-            throw new Exception("Error al procesar el PDF.");
-        }
-    }
-
-    private function procesarTexto(string $text, Ramo $ramo): array
-    {
-        switch (strtolower($ramo->slug)) {
-            case self::RAMO_AUTOMOVILES_RESIDENTES:
-                return $this->procesarAutosResidentes($text);
-            case self::RAMO_GASTOS_MEDICOS_INDIVIDUAL:
-                return $this->procesarGastosMedicosIndividual($text);
-            case self::RAMO_GASTOS_MEDICOS_MAYORES_GRUPOS:
-                return $this->procesarGastosMedicosMayoresGrupos($text);
-            default:
-                throw new InvalidArgumentException("El ramo {$ramo->slug} no tiene un procesador definido.");
-        }
-    }
+   
+    
 
     private function extraerDato(string $text, string $pattern, bool $trim = true): ?string
     {

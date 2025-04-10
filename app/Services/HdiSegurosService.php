@@ -54,7 +54,6 @@ class HdiSegurosService implements SeguroServiceInterface
             $pdf = $this->parser->parseFile($archivo->getPathname()); // Usa el parser inyectado
             $text= $pdf->getText();
            return $text;
-           dd($text);
 
         } catch (\Exception $e) {
             Log::error("Error al parsear el PDF: " . $e->getMessage());
