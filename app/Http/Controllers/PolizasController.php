@@ -28,7 +28,7 @@ class PolizasController extends Controller
             'seguro.ramo' 
         ])->paginate(10);
         
-
+ 
         // Datos para filtros optimizados
         return view('polizas.index', [
             'polizas' => $polizas,

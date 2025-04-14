@@ -5,45 +5,56 @@
 @section('content_header')
     <meta name="csrf-token" content="{{ csrf_token() }}">
 @stop
+
 @section('content')
 
-    <div class="card card-outline card-primary">
-        <div class="card-header">
-            <h3 class="card-title">Lista de Pólizas</h3>
-            <div class="card-tools">
-                <a href="{{ route('polizas.create') }}" class="btn btn-sm btn-primary">
-                    <i class="fas fa-plus-circle mr-2"></i>Nueva Póliza
-                </a>
+<div class="card card-outline card-primary">
+    <div class="card-header">
+        <h3 class="card-title">Lista de Pólizas</h3>
+        <div class="card-tools">
+            <a href="{{ route('polizas.create') }}" class="btn btn-sm btn-primary">
+                <i class="fas fa-plus-circle mr-2"></i>Nueva Póliza
+            </a>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <div class="row mb-3">
+            <!-- Filtro de fecha de inicio -->
+            <div class="col-md-3">
+                <label for="fecha_inicio">Fecha de inicio</label>
+                <input type="date" id="fecha_inicio" class="form-control">
+            </div>
+
+            <!-- Filtro de fecha de fin -->
+            <div class="col-md-3">
+                <label for="fecha_fin">Fecha de fin</label>
+                <input type="date" id="fecha_fin" class="form-control">
+            </div>
+
+            <!-- Filtro de compañía -->
+            <div class="col-md-3">
+                <label for="companiaFilter">Compañía</label>
+                <select id="companiaFilter" class="form-control">
+                    <option value="">Todas las compañías</option>
+                    @foreach($companias as $compania)
+                        <option value="{{ $compania->nombre }}">{{ $compania->nombre }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <!-- Filtro de estado -->
+            <div class="col-md-3">
+                <label for="statusFilter">Estado</label>
+                <select id="statusFilter" class="form-control">
+                    <option value="">Todos los estados</option>
+                    <option value="vigente">Vigentes</option>
+                    <option value="vencida">Vencidas</option>
+                </select>
             </div>
         </div>
 
-        <div class="card-body">
-            <div class="row mb-3">
-               
-                <div class="col-md-3">
-                    <select id="companiaFilter" class="form-control">
-                        <option value="">Todas las compañías</option>
-                        @foreach($companias as $compania)
-                            <option value="{{ $compania->nombre }}">{{ $compania->nombre }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <select id="statusFilter" class="form-control">
-                        <option value="">Todos los estados</option>
-                        <option value="vigente">Vigentes</option>
-                        <option value="vencida">Vencidas</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-    <select id="tipoFilter" class="form-control">
-        <option value="">Todos los tipos</option>
-        @foreach($polizas as $id => $nombre)
-            <option value="{{ $id }}">{{ $nombre }}</option>
-        @endforeach
-    </select>
-</div>
-            </div>
+
 
             <div class="table-responsive">
                 <table id="polizasTable" class="table table-striped table-hover" style="width:100%">
@@ -300,4 +311,55 @@ $(document).ready(function() {
     });
 });
 </script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Función para filtrar las pólizas
+        function filtrarPolizas() {
+            // Obtener valores de los filtros
+            const compania = document.getElementById('companiaFilter').value;
+            const status = document.getElementById('statusFilter').value;
+            const tipo = document.getElementById('tipoFilter').value;
+            const fechaInicio = document.getElementById('fecha_inicio').value;
+            const fechaFin = document.getElementById('fecha_fin').value;
+
+            // Aquí puedes hacer una solicitud a tu servidor para filtrar las pólizas
+            // Por ejemplo, utilizando AJAX o mediante la actualización de una tabla.
+
+            // Crear un objeto de filtros
+            const filtros = {
+                compania: compania,
+                status: status,
+                tipo: tipo,
+                fecha_inicio: fechaInicio,
+                fecha_fin: fechaFin
+            };
+
+            // Enviar los filtros al servidor (suponiendo que tienes un controlador que maneja esto)
+            fetch('{{ route('polizas.index') }}', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify(filtros) // Pasar los filtros al servidor (opcional)
+            })
+            .then(response => response.json())  // Manejar la respuesta
+            .then(data => {
+                // Aquí puedes actualizar la vista, como la tabla, con los datos filtrados
+                console.log(data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        // Agregar eventos a los filtros
+        document.getElementById('companiaFilter').addEventListener('change', filtrarPolizas);
+        document.getElementById('statusFilter').addEventListener('change', filtrarPolizas);
+        document.getElementById('tipoFilter').addEventListener('change', filtrarPolizas);
+        document.getElementById('fecha_inicio').addEventListener('change', filtrarPolizas);
+        document.getElementById('fecha_fin').addEventListener('change', filtrarPolizas);
+    });
+</script>
+
 @endsection

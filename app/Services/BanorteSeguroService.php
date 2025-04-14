@@ -34,11 +34,7 @@ class BanorteSeguroService implements SeguroServiceInterface
 
         try {
             $text = $this->extractText($archivo); // Usa el nuevo método extractText
-            Log::info("Texto extraído exitosamente", [
-                'seguro' => $seguro->nombre,
-                'ramo' => $ramo->nombre,
-                'data' => substr($text, 0, 500),
-            ]);
+          
             return $this->procesarTexto($text, $ramo, $seguro);
         } catch (PdfParseException $e) {
             Log::error("Error al extraer texto del PDF: " . $e->getMessage());
@@ -64,11 +60,12 @@ class BanorteSeguroService implements SeguroServiceInterface
 {
     $this->validarSeguroYramo($seguro, $ramo);
     
-    $config = match($ramo->nombre) {
-        'Automóviles' => $this->getConfigAutosResidentes(),
-        'Accidentes y enfermedades' => $this->getConfigGastosMedicos(), // Ejemplo
+     $config = match($ramo->nombre) {
+        'Automóviles' => $this->getConfigBaseAutos(),
+        'Accidentes y enfermedades' => $this->getConfigAccidentesYenfermedades(),        
         default => [],
     };
+
 
     $datosComunes = $this->procesarDatosComunes($text, $config);
 
@@ -136,18 +133,11 @@ private function extraerDato(string $text, string $pattern, bool $trim = true): 
 private function procesarDatosComunes(string $text, array $config): array
 {
     $datos = [];
-      // Número de póliza
-      $datos['numero_poliza'] = $this->extraerDato($text, $config['poliza_pattern']) ?? null;
-   
-      if (empty($datos['numero_poliza'])) {
-          throw new Exception("Número de póliza es requerido");
-      }
-       // Nombre del cliente
+     
+      
     $datos['nombre_cliente'] = $this->extraerDato($text, $config['nombre_pattern']) ?? 'SIN NOMBRE';
 
-    // RFC
     $datos['rfc'] = $this->extraerDato($text, $config['rfc_pattern']) ?? 'N/A';
-   
     
     foreach ($config as $clave => $patron) {
         if (!str_ends_with($clave, '_pattern')) {
@@ -160,24 +150,22 @@ private function procesarDatosComunes(string $text, array $config): array
             $datos[$nombreCampo] = trim($match[1]);
         }
     }
+    //determinar el tipo de formato 
+    $tipoFecha= $config['tipo'] ?? 'autos';
 
-    // Si quieres transformar las fechas con los meses, aquí va un ejemplo:
-        foreach (['vigencia_inicio', 'vigencia_fin'] as $campoFecha) {
-            if (!empty($datos[$campoFecha]) && isset($config['meses'])) {
-                $datos[$campoFecha] = $this->formatearFecha($datos[$campoFecha], $config['meses']);
-            } else {
-                unset($datos[$campoFecha]); // Elimina la clave si está vacía o inválida
-            }
+     // Formatear vigencias
+     foreach (['vigencia_inicio', 'vigencia_fin'] as $campo) {
+        if (!empty($datos[$campo])) {
+            $datos[$campo] = match($tipoFecha) {
+                'gastos_medicos' => $this->formatearFechaGastosMedicos($datos[$campo], $config['meses']),
+                default => $this->formatearFechaAutos($datos[$campo], $config['meses'])
+            };
         }
-        
-   // Extraer y convertir el total a pagar
-   if (preg_match('/Prima Total:\s*\$([\d,\.]+)/i', $text, $matches)) {
-    $datos['total_pagar'] = (float) str_replace([',', '$'], '', $matches[1]);
-}
-
+    }
     return $datos;
+  
 }
-private function formatearFecha(?string $fecha, array $meses): ?string
+private function formatearFechaAutos (?string $fecha, array $meses): ?string
 {
     if (!$fecha) return null;
 
@@ -191,14 +179,20 @@ private function formatearFecha(?string $fecha, array $meses): ?string
     }
     return null;
 }
+private function formatearFechaGastosMedicos(?string $fecha, array $meses):?string{
+    if (preg_match('/(\d{2})\/(\d{2})\/(\d{4})/', $fecha, $m)) {
+        return "{$m[3]}-{$m[2]}-{$m[1]}"; // YYYY-MM-DD
+    }
+    return null;
+}
 
-
-private function getConfigAutosResidentes(): array
+private function getConfigBaseAutos(): array
 {
     return [
+        'tipo' => 'autos',
         'nombre_pattern' => '/Nombre del Contratante:\s*([A-ZÁÉÍÓÚÑ\s\.\-]+)(?=\tR\.F\.C\.)/i',
         'rfc_pattern' => '/R\.F\.C\.:([A-Z0-9]+)/i',
-        'poliza_pattern' => '/No\.\s*de\s*Póliza.*?\s*(\d+)\s+\d+\s+(\w+)/s',
+        'numero_poliza_pattern' => '/No\.\s*de\s*Póliza.*?\s*(\d+)\s+\d+\s+(\w+)/s',
         'vigencia_inicio_pattern' => '/Inicio Vigencia:\s*\d{2}:\d{2}\s*hrs\s*(\d{2}\/\w{3}\/\d{4})/i',
         'vigencia_fin_pattern' => '/Fin Vigencia:\s*\d{2}:\d{2}\s*hrs\s*(\d{2}\/\w{3}\/\d{4})/i',
         'forma_pago_pattern' => '/Forma de pago:\s*(ANUAL|SEMESTRAL|TRIMESTRAL|MENSUAL)\s*(\d{1,2}\s*MESES)?/i',
@@ -211,18 +205,90 @@ private function getConfigAutosResidentes(): array
         ],
     ];
 }
+private function getConfigAccidentesYenfermedades(): array
+{
+    return [
+        'tipo' => 'gastos_medicos',
+        'nombre_pattern' => '/Nombre y apellido completo\s+([A-ZÁÉÍÓÚÑ\s.]+?)(?=\s+Domicilio)/i',
+        'rfc_pattern' => '/R\.F\.C:\s*([A-Z0-9]{10,13})/i',
+        'numero_poliza_pattern' => '/NO\.\s*DE\s*PÓLIZA\s*(\d+)/i',
+        'vigencia_inicio_pattern' => '/DESDE[\s\S]*?(\d{2}\/\d{2}\/\d{4})/i',
+        'vigencia_fin_pattern' => '/HASTA[\s\S]*?(\d{2}\/\d{2}\/\d{4})/i',
+        'forma_pago_pattern' => '/FORMA DE PAGO\s*(ANUAL|SEMESTRAL|TRIMESTRAL|MENSUAL)/i',
+        'numero_agente_pattern' => '/AGENTE\s*(\d+)/i',
+        'nombre_agente_pattern' => '/Nombre y Clave del Agente:\s*\n\s*([A-ZÁÉÍÓÚÑ\s.]+)\s*\d+/i',
+        'total_pagar_pattern' => '/Prima Total[\s\S]*?\$\s*([\d,]+\.\d{2})(?=\s*<\/)/i',
 
+       'meses' => [
+            'ENE' => '01', 'FEB' => '02', 'MAR' => '03', 'ABR' => '04',
+            'MAY' => '05', 'JUN' => '06', 'JUL' => '07', 'AGO' => '08',
+            'SEP' => '09', 'OCT' => '10', 'NOV' => '11', 'DIC' => '12'
+        ],
+    ];
+}
+private function getConfigCamiones(): array
+{
+    return [
+        'tipo' => 'autos',
+        'nombre_pattern' => '/Nombre del Contratante:[_\s]*([A-ZÁÉÍÓÚÑ\s]+?)(?=\s*\.F\.C\.:)/i',
+        'rfc_pattern' => '/\.F\.C\.:\s*_*([A-Z0-9]{12,13})/i',
+        'numero_poliza_pattern' => '/No\.\s*de\s*Póliza\s*(\d+)/i',
+        'vigencia_inicio_pattern' => '/Inicio de vigencia:\s*\d{2}:\d{2}hrs\s*(\d{2}\/\w{3}\/\d{4})/i',
+        'vigencia_fin_pattern' => '/Fin de vigencia:\s*\d{2}:\d{2}hrs\s*(\d{2}\/\w{3}\/\d{4})/i',
+        'forma_pago_pattern' => '/Forma de pago:\s*(ANUAL|SEMESTRAL|TRIMESTRAL|MENSUAL)/i',
+        'numero_agente_pattern' => '/Intermediario:\s*(\d+)/i',
+        'nombre_agente_pattern' => '/Intermediario:\s*\d+\s+([A-ZÁÉÍÓÚÑ\s]+?)(?=\s+Prima)/i',
+        'total_pagar_pattern' => '/Prima total:\s*\$?\s*([\d,\.]+)/i',
+        'meses' => [
+            'ENE' => '01', 'FEB' => '02', 'MAR' => '03', 'ABR' => '04',
+            'MAY' => '05', 'JUN' => '06', 'JUL' => '07', 'AGO' => '08',
+            'SEP' => '09', 'OCT' => '10', 'NOV' => '11', 'DIC' => '12'
+        ],
+    ];
+}
 
+// Agregar método procesarGastosMedicos si no existe
+private function procesarGastosMedicos(string $text): array
+{
+    $config = $this->getConfigAccidentesYenfermedades();
+    $datos = $this->procesarDatosComunes($text, $config);
+        // Extraer prima total (el último valor después de "Prima Total")
+    if (preg_match_all('/\$\s*([\d,]+\.\d{2})/', $text, $matches)) {
+        $datos['total_pagar'] = (float) str_replace([',', '$'], '', end($matches[1]));
+    }
+  dd($datos);   
+ // return $datos;
+
+}
 
   
 private function procesarAutosResidentes(string $text): array
 {
-    $config = $this->getConfigAutosResidentes();
-    
-   $extraido= $this->procesarDatosComunes($text, $config);
-  // dd($extraido);
-  return $extraido;
+    $config = $this->getConfigBaseAutos();
+     // Nombre del cliente
+     
+   $datos= $this->procesarDatosComunes($text, $config);
+    // Extraer y convertir el total a pagar
+    if (preg_match('/Prima Total:\s*\$([\d,\.]+)/i', $text, $matches)) {
+        $datos['total_pagar'] = (float) str_replace([',', '$'], '', $matches[1]);
+    }
+     dd($datos);
+   //return $datos;
+ 
 }
+private function procesarCamiones(string $text): array
+{
+    $config = $this->getConfigCamiones();
+    $datos = $this->procesarDatosComunes($text, $config);
 
+   
+    // Extraer total a pagar
+    if (preg_match($config['total_pagar_pattern'], $text, $matches)) {
+        $datos['total_pagar'] = (float) str_replace([',', '$'], '', $matches[1]);
+    }
+    
+    return $datos;
+    //dd($datos);
+}
 
 }

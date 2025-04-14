@@ -341,12 +341,7 @@ return [
                 'icon' => 'fas fa-plus-circle',
                 'can'  => 'crear pólizas',
             ],
-            [
-                'text' => 'Renovaciones',
-                'url'  => 'polizas/renovaciones',
-                'icon' => 'fas fa-sync-alt',
-                'can'  => 'renovacion de pólizas',
-            ],
+            
             [
                 'text' => 'Archivos PDF',
                 'url'  => 'polizas/archivos',
@@ -368,27 +363,7 @@ return [
         ],
     ],
 
-    // Gestión de Clientes
-    [
-        'text'    => 'Gestión de Clientes',
-        'icon'    => 'fas fa-users',
-        'can'     => 'ver clientes',
-        'submenu' => [
-            [
-                'text' => 'Listado de Clientes',
-                'url'  => 'clientes',
-                'icon' => 'fas fa-address-book',
-                'can'  => 'ver clientes',
-            ],
-            [
-                'text' => 'Nuevo Cliente',
-                'url'  => 'clientes/create',
-                'icon' => 'fas fa-user-plus',
-                'can'  => 'crear clientes',
-            ],
-        ],
-    ],
-
+   
     // Módulo Administrativo
     [
         'text'    => 'Administración',
@@ -410,32 +385,7 @@ return [
         ],
     ],
 
-    // Reportes
-    [
-        'text'    => 'Reportes',
-        'icon'    => 'fas fa-chart-line',
-        'can'     => 'ver reportes',
-        'submenu' => [
-            [
-                'text' => 'Generar Reportes',
-                'url'  => 'reportes',
-                'icon' => 'fas fa-file-signature',
-                'can'  => 'crear reportes',
-            ],
-            [
-                'text' => 'Exportar Datos',
-                'url'  => 'reportes/exportar',
-                'icon' => 'fas fa-file-export',
-                'can'  => 'exportar reportes',
-            ],
-            [
-                'text' => 'Estadísticas',
-                'url'  => 'reportes/estadisticas',
-                'icon' => 'fas fa-chart-pie',
-                'can'  => 'ver reportes',
-            ],
-        ],
-    ],
+    
 
     // Gestión de Usuarios
     [
