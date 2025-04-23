@@ -61,7 +61,7 @@
                    <thead class="bg-lightblue">
                         <tr>
                             <th>Póliza</th>
-                            <th>Cliente</th>
+                            <th>Nombre Cliente</th>
                             <th>Compañía</th>
                             <th>Vigencia</th>
                             <th>Monto</th>

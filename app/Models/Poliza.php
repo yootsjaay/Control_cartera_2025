@@ -13,22 +13,21 @@ use Illuminate\Database\Eloquent\Model;
  * Class Poliza
  * 
  * @property int $id
- * @property string $numero_poliza
+ * @property int $ramo_id
+ * @property int $seguro_id
+ * @property int $numero_poliza_id
+ * @property string $nombre_cliente
  * @property Carbon $vigencia_inicio
  * @property Carbon $vigencia_fin
  * @property string $forma_pago
- * @property float $total_a_pagar
- * @property string|null $archivo_pdf
- * @property string $status
- * @property int $compania_id
- * @property int $cliente_id
- * @property int $user_id
+ * @property float $prima_total
+ * @property string $ruta_pdf
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
- * @property Cliente $cliente
- * @property Compania $compania
- * @property User $user
+ * @property NumerosPoliza $numeros_poliza
+ * @property Ramo $ramo
+ * @property Seguro $seguro
  *
  * @package App\Models
  */
@@ -37,59 +36,38 @@ class Poliza extends Model
 	protected $table = 'polizas';
 
 	protected $casts = [
+		'ramo_id' => 'int',
+		'seguro_id' => 'int',
+		'numero_poliza_id' => 'int',
 		'vigencia_inicio' => 'datetime',
 		'vigencia_fin' => 'datetime',
-		'total_a_pagar' => 'float',
-		'compania_id' => 'int',
-		'cliente_id' => 'int',
-		'user_id' => 'int'
+		'prima_total' => 'float'
 	];
 
 	protected $fillable = [
-		'numero_poliza',
+		'ramo_id',
+		'seguro_id',
+		'numero_poliza_id',
+		'nombre_cliente',
 		'vigencia_inicio',
 		'vigencia_fin',
 		'forma_pago',
-		'total_a_pagar',
-		'archivo_pdf',
-		'status',
-		'compania_id',
-		'cliente_id',
-		'user_id',
-		'seguro_id'
+		'prima_total',
+		'ruta_pdf'
 	];
 
-	public function cliente()
+	public function numeros_poliza()
 	{
-		return $this->belongsTo(Cliente::class);
+		return $this->belongsTo(NumerosPoliza::class, 'numero_poliza_id');
 	}
 
-	public function compania()
+	public function ramo()
 	{
-		return $this->belongsTo(Compania::class);
+		return $this->belongsTo(Ramo::class);
 	}
 
-	public function user()
+	public function seguro()
 	{
-		return $this->belongsTo(User::class);
+		return $this->belongsTo(Seguro::class);
 	}
-	// Relación a través de la tabla intermedia
-	public function companiaSeguros()
-	{
-		return $this->hasManyThrough(
-			CompaniaSeguro::class,  // Modelo de pivote
-			Compania::class,        // Modelo de relación intermedia
-			'compania_id',          // Clave foránea en `Poliza` hacia `Compania`
-			'seguro_id',            // Clave foránea en `CompaniaSeguro` hacia `Seguro`
-			'id',                   // Clave local en `Poliza`
-			'id'                    // Clave local en `CompaniaSeguro`
-		);
-	}
-
-// Relación a través de la tabla intermedia para acceder a Seguro
-public function seguro()
-{
-    return $this->belongsTo(Seguro::class);
-}
-
 }

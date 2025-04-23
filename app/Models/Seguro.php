@@ -21,6 +21,8 @@ use Illuminate\Database\Eloquent\Model;
  * 
  * @property Ramo $ramo
  * @property Collection|Compania[] $companias
+ * @property Collection|NumerosPoliza[] $numeros_polizas
+ * @property Collection|Poliza[] $polizas
  *
  * @package App\Models
  */
@@ -38,18 +40,24 @@ class Seguro extends Model
 	];
 
 	public function ramo()
-{
-    return $this->belongsTo(Ramo::class);
-}
-
+	{
+		return $this->belongsTo(Ramo::class);
+	}
 
 	public function companias()
-{
-    return $this->belongsToMany(Compania::class)
-                ->withPivot('id')  // Si necesitas acceder al campo 'id' de la tabla pivote
-                ->withTimestamps();
-}
+	{
+		return $this->belongsToMany(Compania::class)
+					->withPivot('id')
+					->withTimestamps();
+	}
 
+	public function numeros_polizas()
+	{
+		return $this->hasMany(NumerosPoliza::class);
+	}
 
-
+	public function polizas()
+	{
+		return $this->hasMany(Poliza::class);
+	}
 }

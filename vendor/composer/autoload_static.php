@@ -363,13 +363,13 @@ class ComposerStaticInitcbed58921fb40526dd756235091dd357
         ),
         'Spatie\\LaravelIgnition\\' => 
         array (
-            0 => __DIR__ . '/..' . '/spatie/laravel-ignition/src',
-            1 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/laravel-ignition',
+            0 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/laravel-ignition',
+            1 => __DIR__ . '/..' . '/spatie/laravel-ignition/src',
         ),
         'Spatie\\Ignition\\' => 
         array (
-            0 => __DIR__ . '/..' . '/spatie/ignition/src',
-            1 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/ignition',
+            0 => __DIR__ . '/..' . '/spatie/error-solutions/legacy/ignition',
+            1 => __DIR__ . '/..' . '/spatie/ignition/src',
         ),
         'Spatie\\FlareClient\\' => 
         array (
@@ -713,6 +713,7 @@ class ComposerStaticInitcbed58921fb40526dd756235091dd357
         'App\\Services\\GmxSeguroService' => __DIR__ . '/../..' . '/app/Services/GmxSeguroService.php',
         'App\\Services\\HdiSegurosService' => __DIR__ . '/../..' . '/app/Services/HdiSegurosService.php',
         'App\\Services\\PolizaService' => __DIR__ . '/../..' . '/app/Services/PolizaService.php',
+        'App\\Services\\ThonaSegurosService' => __DIR__ . '/../..' . '/app/Services/ThonaSegurosService.php',
         'App\\View\\Components\\AppLayout' => __DIR__ . '/../..' . '/app/View/Components/AppLayout.php',
         'App\\View\\Components\\GuestLayout' => __DIR__ . '/../..' . '/app/View/Components/GuestLayout.php',
         'Attribute' => __DIR__ . '/..' . '/symfony/polyfill-php80/Resources/stubs/Attribute.php',

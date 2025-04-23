@@ -69,6 +69,7 @@ return array(
     'App\\Services\\GmxSeguroService' => $baseDir . '/app/Services/GmxSeguroService.php',
     'App\\Services\\HdiSegurosService' => $baseDir . '/app/Services/HdiSegurosService.php',
     'App\\Services\\PolizaService' => $baseDir . '/app/Services/PolizaService.php',
+    'App\\Services\\ThonaSegurosService' => $baseDir . '/app/Services/ThonaSegurosService.php',
     'App\\View\\Components\\AppLayout' => $baseDir . '/app/View/Components/AppLayout.php',
     'App\\View\\Components\\GuestLayout' => $baseDir . '/app/View/Components/GuestLayout.php',
     'Attribute' => $vendorDir . '/symfony/polyfill-php80/Resources/stubs/Attribute.php',

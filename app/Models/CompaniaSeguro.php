@@ -13,8 +13,8 @@ use Illuminate\Database\Eloquent\Model;
  * Class CompaniaSeguro
  * 
  * @property int $id
- * @property int $seguro_id
  * @property int $compania_id
+ * @property int $seguro_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
@@ -28,13 +28,13 @@ class CompaniaSeguro extends Model
 	protected $table = 'compania_seguro';
 
 	protected $casts = [
-		'seguro_id' => 'int',
-		'compania_id' => 'int'
+		'compania_id' => 'int',
+		'seguro_id' => 'int'
 	];
 
 	protected $fillable = [
-		'seguro_id',
-		'compania_id'
+		'compania_id',
+		'seguro_id'
 	];
 
 	public function compania()
@@ -46,6 +46,4 @@ class CompaniaSeguro extends Model
 	{
 		return $this->belongsTo(Seguro::class);
 	}
-	
-
 }

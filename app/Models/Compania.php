@@ -15,12 +15,11 @@ use Illuminate\Database\Eloquent\Model;
  * 
  * @property int $id
  * @property string $nombre
- * @property string|null $servicio_clase
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
  * @property Collection|Seguro[] $seguros
- * @property Collection|Poliza[] $polizas
+ * @property Collection|NumerosPoliza[] $numeros_polizas
  *
  * @package App\Models
  */
@@ -29,8 +28,7 @@ class Compania extends Model
 	protected $table = 'companias';
 
 	protected $fillable = [
-		'nombre',
-		'servicio_clase'
+		'nombre'
 	];
 
 	public function seguros()
@@ -40,8 +38,8 @@ class Compania extends Model
 					->withTimestamps();
 	}
 
-	public function polizas()
+	public function numeros_polizas()
 	{
-		return $this->hasMany(Poliza::class);
+		return $this->hasMany(NumerosPoliza::class);
 	}
 }
