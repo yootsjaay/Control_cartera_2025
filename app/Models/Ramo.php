@@ -18,7 +18,6 @@ use Illuminate\Database\Eloquent\Model;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
- * @property Collection|NumerosPoliza[] $numeros_polizas
  * @property Collection|Poliza[] $polizas
  * @property Collection|Seguro[] $seguros
  *
@@ -31,11 +30,6 @@ class Ramo extends Model
 	protected $fillable = [
 		'nombre'
 	];
-
-	public function numeros_polizas()
-	{
-		return $this->hasMany(NumerosPoliza::class);
-	}
 
 	public function polizas()
 	{

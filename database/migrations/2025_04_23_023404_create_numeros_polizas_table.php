@@ -13,10 +13,7 @@ return new class extends Migration
     {
         Schema::create('numeros_polizas', function (Blueprint $table) {
             $table->id();
-            $table->string('numero_polizas', 20);
-            $table->foreignId('compania_id')->constrained('companias')->onDelete('cascade');
-            $table->foreignId('ramo_id')->constrained('ramos')->onDelete('cascade');
-            $table->foreignId('seguro_id')->constrained('seguros')->onDelete('cascade');
+            $table->string('numero_poliza', 20);
             $table->timestamps();
         });
         
@@ -27,6 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('numeros_polizas');
+        Schema::dropIfExists('numeros_poliza');
     }
 };

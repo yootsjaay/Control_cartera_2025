@@ -13,14 +13,12 @@ return new class extends Migration
     {
         Schema::create('pagos_fraccionados', function (Blueprint $table) {
             $table->id();
-            
-            $table->foreignId('numero_poliza_id')->constrained('numeros_polizas');
-            
+            $table->foreignId('poliza_id')->constrained('polizas');
+            $table->Integer('numero_recibo');
             $table->date('vigencia_inicio');
             $table->date('vigencia_fin');
             $table->float('importe');
-            $table->date('fecha_limite');
-            
+            $table->date('fecha_limite_pago');
             $table->timestamps();
         });
         

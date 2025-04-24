@@ -21,7 +21,6 @@ use Illuminate\Database\Eloquent\Model;
  * 
  * @property Ramo $ramo
  * @property Collection|Compania[] $companias
- * @property Collection|NumerosPoliza[] $numeros_polizas
  * @property Collection|Poliza[] $polizas
  *
  * @package App\Models
@@ -49,11 +48,6 @@ class Seguro extends Model
 		return $this->belongsToMany(Compania::class)
 					->withPivot('id')
 					->withTimestamps();
-	}
-
-	public function numeros_polizas()
-	{
-		return $this->hasMany(NumerosPoliza::class);
 	}
 
 	public function polizas()

@@ -27,8 +27,8 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable
 {
 	use HasFactory, Notifiable, HasRoles;
-
 	protected $table = 'users';
+
 	protected $casts = [
 		'email_verified_at' => 'datetime'
 	];
