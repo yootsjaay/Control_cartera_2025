@@ -63,7 +63,7 @@ return [
     |
     */
 
-    'logo' => '<b>Control</b>Cartera',
+    'logo' => '<b>Preevisa</b>ControlPolizas',
     'logo_img' => '',
     'logo_img_class' => 'brand-image img-circle elevation-3',
     'logo_img_xl' => null,
@@ -335,31 +335,16 @@ return [
                 'icon' => 'fas fa-list',
                 'can'  => 'ver pólizas',
             ],
-            [
-                'text' => 'Nueva Póliza',
-                'url'  => 'polizas/create',
-                'icon' => 'fas fa-plus-circle',
-                'can'  => 'crear pólizas',
-            ],
+           
             
-            [
-                'text' => 'Archivos PDF',
-                'url'  => 'polizas/archivos',
-                'icon' => 'fas fa-file-pdf',
-                'can'  => 'subir archivos de pólizas',
-            ],
+           
             [
                 'text' => 'Vencidas',
                 'url'  => 'polizas/vencidas',
                 'icon' => 'fas fa-calendar-times',
                 'can'  => 'pólizas vencidas',
             ],
-            [
-                'text' => 'Pendientes',
-                'url'  => 'polizas/pendientes',
-                'icon' => 'fas fa-exclamation-triangle',
-                'can'  => 'pólizas pendientes',
-            ],
+           
         ],
     ],
 

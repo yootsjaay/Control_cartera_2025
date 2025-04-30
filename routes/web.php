@@ -8,6 +8,8 @@ use App\Http\Controllers\SegurosRamoController;
 use App\Http\Controllers\ClientesController;
 use App\Http\Controllers\ReportesController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\DashboardController;
+
 
 Route::redirect('/', '/login');
 
@@ -17,7 +19,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::post('/polizas/recursos', [PolizasController::class, 'obtenerRecursos']);
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
     Route::resource('polizas', PolizasController::class);
+    // Descargar archivo PDF de póliza
+
     // Usuarios (ajustado para coincidir con la carpeta 'user')
     Route::prefix('usuarios')->middleware('permission:ver usuarios')->group(function () {
         Route::get('/', [UserController::class, 'index'])->name('user.index');

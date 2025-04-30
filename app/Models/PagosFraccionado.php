@@ -13,15 +13,16 @@ use Illuminate\Database\Eloquent\Model;
  * Class PagosFraccionado
  * 
  * @property int $id
- * @property int $numero_poliza_id
+ * @property int $poliza_id
+ * @property int $numero_recibo
  * @property Carbon $vigencia_inicio
  * @property Carbon $vigencia_fin
  * @property float $importe
- * @property Carbon $fecha_limite
+ * @property Carbon $fecha_limite_pago
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
- * @property NumerosPoliza $numeros_poliza
+ * @property Poliza $poliza
  *
  * @package App\Models
  */
@@ -30,23 +31,25 @@ class PagosFraccionado extends Model
 	protected $table = 'pagos_fraccionados';
 
 	protected $casts = [
-		'numero_poliza_id' => 'int',
+		'poliza_id' => 'int',
+		'numero_recibo' => 'int',
 		'vigencia_inicio' => 'datetime',
 		'vigencia_fin' => 'datetime',
 		'importe' => 'float',
-		'fecha_limite' => 'datetime'
+		'fecha_limite_pago' => 'datetime'
 	];
 
 	protected $fillable = [
-		'numero_poliza_id',
+		'poliza_id',
+		'numero_recibo',
 		'vigencia_inicio',
 		'vigencia_fin',
 		'importe',
-		'fecha_limite'
+		'fecha_limite_pago'
 	];
 
-	public function numeros_poliza()
+	public function poliza()
 	{
-		return $this->belongsTo(NumerosPoliza::class, 'numero_poliza_id');
+		return $this->belongsTo(Poliza::class);
 	}
 }

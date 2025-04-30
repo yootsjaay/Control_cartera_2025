@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property Carbon|null $updated_at
  * 
  * @property Collection|Seguro[] $seguros
+ * @property Collection|Poliza[] $polizas
  *
  * @package App\Models
  */
@@ -35,5 +36,10 @@ class Compania extends Model
 		return $this->belongsToMany(Seguro::class)
 					->withPivot('id')
 					->withTimestamps();
+	}
+
+	public function polizas()
+	{
+		return $this->hasMany(Poliza::class);
 	}
 }

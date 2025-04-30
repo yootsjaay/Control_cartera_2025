@@ -18,7 +18,6 @@ use Illuminate\Database\Eloquent\Model;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
- * @property Collection|PagosFraccionado[] $pagos_fraccionados
  * @property Collection|Poliza[] $polizas
  *
  * @package App\Models
@@ -30,11 +29,6 @@ class NumerosPoliza extends Model
 	protected $fillable = [
 		'numero_poliza'
 	];
-
-	public function pagos_fraccionados()
-	{
-		return $this->hasMany(PagosFraccionado::class, 'numero_poliza_id');
-	}
 
 	public function polizas()
 	{
