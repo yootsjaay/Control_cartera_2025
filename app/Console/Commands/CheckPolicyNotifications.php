@@ -28,9 +28,10 @@ class CheckPolicyNotifications extends Command
 
         foreach ($polizas as $poliza) {
             $diasRestantes = $now->diffInDays($poliza->vigencia_fin);
-            User::all()->each(function ($user) use ($poliza, $diasRestantes) {
-                $user->notify(new PolizaPorVencerNotification($poliza, $diasRestantes));
-            });
+            if ($poliza->user) {
+                $poliza->user->notify(new PolizaPorVencerNotification($poliza, $diasRestantes));
+            }
+            
         }
 
         // Notificar sobre pagos (15 días antes)
@@ -41,9 +42,10 @@ class CheckPolicyNotifications extends Command
 
         foreach ($pagos as $pago) {
             $diasRestantes = $now->diffInDays($pago->fecha_limite_pago);
-            User::all()->each(function ($user) use ($pago, $diasRestantes) {
-                $user->notify(new PagoPorVencerNotification($pago->poliza, $pago, $diasRestantes));
-            });
+            if ($pago->poliza && $pago->poliza->user) {
+                $pago->poliza->user->notify(new PagoPorVencerNotification($pago->poliza, $pago, $diasRestantes));
+            }
+            
         }
 
         Log::channel('notificaciones')->info('Notificaciones procesadas', [

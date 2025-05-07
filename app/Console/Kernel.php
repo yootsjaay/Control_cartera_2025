@@ -66,7 +66,7 @@ class Kernel extends ConsoleKernel
                 }
             }
 
-        })->dailyAt('08:00', '15:00'); // Ejecutar esta tarea diariamente a las 10:00 AM (puedes ajustar la hora)
+        })->dailyAt('08:00'); // Ejecutar esta tarea diariamente a las 10:00 AM (puedes ajustar la hora)
     }
 
     /**

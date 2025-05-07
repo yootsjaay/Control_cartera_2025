@@ -83,15 +83,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/recursos', [PolizasController::class, 'obtenerRecursos']);
     });
 
-    // 🧾 Clientes
-    Route::prefix('clientes')->middleware('permission:ver clientes')->group(function () {
-        Route::get('/', [ClientesController::class, 'index'])->name('clientes.index');
-
-        Route::middleware('permission:crear clientes')->group(function () {
-            Route::get('/create', [ClientesController::class, 'create'])->name('clientes.create');
-            Route::post('/', [ClientesController::class, 'store'])->name('clientes.store');
-        });
-    });
+   
 
     // 🛠️ Módulo administrativo
     Route::middleware('permission:gestionar sistema')->group(function () {
@@ -99,13 +91,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('seguros', SegurosRamoController::class)->except(['show']);
     });
 
-    // 📊 Reportes
-    Route::prefix('reportes')->middleware('permission:ver reportes')->group(function () {
-        Route::get('/', [ReportesController::class, 'index'])->name('reportes.index');
-        Route::get('/estadisticas', [ReportesController::class, 'estadisticas'])->name('reportes.estadisticas');
-
-        Route::middleware('permission:exportar reportes')->get('/exportar', [ReportesController::class, 'exportar'])->name('reportes.exportar');
-    });
+   
 
     // 🧩 Roles y permisos
     Route::prefix('roles')->middleware('permission:ver roles')->group(function () {
@@ -121,22 +107,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware('permission:eliminar roles')->delete('/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
     });
 
-    // 🧑‍🤝‍🧑 Grupos (internos y externos)
-    Route::prefix('grupos')->middleware('permission:ver grupos')->group(function () {
-        Route::get('/', [GroupController::class, 'index'])->name('grupos.index');
-
-        Route::middleware('permission:crear grupos')->group(function () {
-            Route::get('/crear', [GroupController::class, 'create'])->name('grupos.create');
-            Route::post('/', [GroupController::class, 'store'])->name('grupos.store');
-        });
-
-        Route::middleware('permission:editar grupos')->group(function () {
-            Route::get('/{grupo}/editar', [GroupController::class, 'edit'])->name('grupos.edit');
-            Route::patch('/{grupo}', [GroupController::class, 'update'])->name('grupos.update');
-        });
-
-        Route::middleware('permission:eliminar grupos')->delete('/{grupo}', [GroupController::class, 'destroy'])->name('grupos.destroy');
-    });
+   
 });
 
 require __DIR__.'/auth.php';

@@ -21,22 +21,25 @@ class NotificarPolizasPorVencer implements ShouldQueue
      /**
      * Execute the job.
      */
-    public function handle(){
-        $fechaAviso = Carbon::now()->addMonth()->toDateString();//aviso un mes de anticipacion
-        $polizas= Poliza::whereDate('vigencia_fin', $fechaAviso)->get();
-
+    public function handle()
+    {
+        $fechaAviso = Carbon::now()->addMonth()->toDateString(); // aviso un mes antes
+        $polizas = Poliza::whereDate('vigencia_fin', $fechaAviso)->get();
+    
         if ($polizas->isEmpty()) {
             return;
-        //obtener usuarios 
-        $usuarios= User::role('user')->get();
-        foreach($polizas as $poliza){
-            foreach($usarios as $usuario){
+        }
+    
+        $usuarios = User::role('user')->get();
+    
+        foreach ($polizas as $poliza) {
+            foreach ($usuarios as $usuario) {
                 $usuario->notify(new PolizaPorVencer($poliza));
             }
         }
     }
-   
+    
 
 
-}
+
 }

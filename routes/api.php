@@ -3,7 +3,6 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthTokenController;
-use App\Http\Controllers\PolizasApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,6 +25,6 @@ Route::middleware('auth:sanctum')->group(function () {
         return $request->user();
     });
 
-    Route::get('/polizas', [PolizasApiController::class, 'index']);
+    
     // más rutas protegidas por token
 });
