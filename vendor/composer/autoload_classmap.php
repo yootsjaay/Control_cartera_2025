@@ -6,8 +6,10 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
+    'App\\Console\\Commands\\CheckPolicyNotifications' => $baseDir . '/app/Console/Commands/CheckPolicyNotifications.php',
     'App\\Console\\Kernel' => $baseDir . '/app/Console/Kernel.php',
     'App\\Exceptions\\Handler' => $baseDir . '/app/Exceptions/Handler.php',
+    'App\\Http\\Controllers\\AuthTokenController' => $baseDir . '/app/Http/Controllers/AuthTokenController.php',
     'App\\Http\\Controllers\\Auth\\AuthenticatedSessionController' => $baseDir . '/app/Http/Controllers/Auth/AuthenticatedSessionController.php',
     'App\\Http\\Controllers\\Auth\\ConfirmablePasswordController' => $baseDir . '/app/Http/Controllers/Auth/ConfirmablePasswordController.php',
     'App\\Http\\Controllers\\Auth\\EmailVerificationNotificationController' => $baseDir . '/app/Http/Controllers/Auth/EmailVerificationNotificationController.php',
@@ -19,6 +21,8 @@ return array(
     'App\\Http\\Controllers\\Auth\\VerifyEmailController' => $baseDir . '/app/Http/Controllers/Auth/VerifyEmailController.php',
     'App\\Http\\Controllers\\CompaniasController' => $baseDir . '/app/Http/Controllers/CompaniasController.php',
     'App\\Http\\Controllers\\Controller' => $baseDir . '/app/Http/Controllers/Controller.php',
+    'App\\Http\\Controllers\\DashboardController' => $baseDir . '/app/Http/Controllers/DashboardController.php',
+    'App\\Http\\Controllers\\PolicyDashboardController' => $baseDir . '/app/Http/Controllers/PolicyDashboardController.php',
     'App\\Http\\Controllers\\PolizasController' => $baseDir . '/app/Http/Controllers/PolizasController.php',
     'App\\Http\\Controllers\\ProfileController' => $baseDir . '/app/Http/Controllers/ProfileController.php',
     'App\\Http\\Controllers\\RoleController' => $baseDir . '/app/Http/Controllers/RoleController.php',
@@ -42,6 +46,7 @@ return array(
     'App\\Jobs\\NotificarPolizasPorVencer' => $baseDir . '/app/Jobs/NotificarPolizasPorVencer.php',
     'App\\Models\\Compania' => $baseDir . '/app/Models/Compania.php',
     'App\\Models\\CompaniaSeguro' => $baseDir . '/app/Models/CompaniaSeguro.php',
+    'App\\Models\\Group' => $baseDir . '/app/Models/Group.php',
     'App\\Models\\Job' => $baseDir . '/app/Models/Job.php',
     'App\\Models\\ModelHasPermission' => $baseDir . '/app/Models/ModelHasPermission.php',
     'App\\Models\\ModelHasRole' => $baseDir . '/app/Models/ModelHasRole.php',
@@ -56,7 +61,8 @@ return array(
     'App\\Models\\Seguro' => $baseDir . '/app/Models/Seguro.php',
     'App\\Models\\User' => $baseDir . '/app/Models/User.php',
     'App\\Notifications\\InvoicePaid' => $baseDir . '/app/Notifications/InvoicePaid.php',
-    'App\\Notifications\\PolizaPorVencer' => $baseDir . '/app/Notifications/PolizaPorVencer.php',
+    'App\\Notifications\\PagoPorVencerNotification' => $baseDir . '/app/Notifications/PagoPorVencerNotification.php',
+    'App\\Notifications\\PolizaPorVencerNotification' => $baseDir . '/app/Notifications/PolizaPorVencerNotification.php',
     'App\\Policies\\PolizaPolicy' => $baseDir . '/app/Policies/PolizaPolicy.php',
     'App\\Providers\\AppServiceProvider' => $baseDir . '/app/Providers/AppServiceProvider.php',
     'App\\Providers\\AuthServiceProvider' => $baseDir . '/app/Providers/AuthServiceProvider.php',

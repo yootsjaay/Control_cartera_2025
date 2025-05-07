@@ -2,55 +2,56 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use App\Models\User;
+use App\Models\Group;
 
 class UserSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Crear permisos
-        $permisos = [
-            'ver usuarios', 'crear usuarios', 'editar usuarios', 'eliminar usuarios',
-            'ver pólizas', 'crear pólizas', 'editar pólizas', 'eliminar pólizas',
-            'subir archivos de pólizas', 'renovacion de pólizas', 'pólizas vencidas', 'pólizas pendientes',
-            'ver clientes', 'crear clientes',
-            'gestionar sistema',
-            'ver reportes', 'crear reportes', 'exportar reportes',
-            'ver roles y permisos' // Asegúrate de que esté aquí
-        ];
-        foreach ($permisos as $permiso) {
-            Permission::create(['name' => $permiso]);
+        // 🔑 Lista de permisos organizados por entidad
+        $acciones = ['ver', 'crear', 'editar', 'eliminar'];
+        $modulos = ['usuarios', 'polizas', 'roles', 'grupos'];
+
+        $permisos = [];
+
+        foreach ($modulos as $modulo) {
+            foreach ($acciones as $accion) {
+                $permisos[] = "$accion $modulo";
+                Permission::firstOrCreate(['name' => "$accion $modulo"]);
+            }
         }
 
-        // Crear roles y asignar permisos
-        $admin = Role::create(['name' => 'administrador']);
-        $admin->givePermissionTo($permisos); // Todos los permisos al administrador
+        // 🎩 Crear roles
+        $admin = Role::firstOrCreate(['name' => 'admin']);
+        $usuario = Role::firstOrCreate(['name' => 'usuario']);
 
-        $user = Role::create(['name' => 'usuario']);
-        $user->givePermissionTo(['ver pólizas', 'crear pólizas', 'subir archivos de pólizas', 'ver usuarios']); // Permisos limitados
-
-        // Crear usuarios de ejemplo
-        $adminUser = User::create([
-            'name' => 'Admin Principal',
-            'email' => 'admin@ejemplo.com',
-            'password' => Hash::make('password123'),
+        // 🔐 Asignar permisos
+        $admin->syncPermissions($permisos);
+        $usuario->syncPermissions([
+            'ver polizas', 'crear polizas', 'editar polizas', 'ver usuarios'
         ]);
-        $adminUser->assignRole('administrador');
 
-        $normalUser = User::create([
-            'name' => 'Usuario Normal',
-            'email' => 'usuario@ejemplo.com',
-            'password' => Hash::make('password123'),
+        // 👥 Crear grupos
+        $internos = Group::firstOrCreate(['nombre' => 'Agentes Internos']);
+        $externos = Group::firstOrCreate(['nombre' => 'Agentes Externos']);
+
+        // 👤 Crear usuario admin
+        $adminUser = User::firstOrCreate([
+            'email' => 'cardozob76121@gmail.com'
+        ], [
+            'name' => 'admin',
+            'password' => Hash::make('cardozo@24'),
+            'group_id' => $internos->id,
         ]);
-        $normalUser->assignRole('usuario');
-    
+        $adminUser->assignRole('admin');
+
+        // 🔐 Crear token para el admin (opcional)
+        $token = $adminUser->createToken('token-admin')->plainTextToken;
+        echo "TOKEN PARA PYTHON (ADMIN): $token\n";
     }
 }

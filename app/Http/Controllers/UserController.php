@@ -2,107 +2,115 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Models\Group;
 use App\Models\User;
-use App\Models\Role;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
+use Illuminate\Notifications\DatabaseNotification;
 
 
 class UserController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+
+
     public function index()
-{
-    $usuarios = User::all();
-    return view('user.index', compact('usuarios'));
-}
+    {
+        $user = User::with('roles', 'group')->paginate(10); // Ejemplo de paginación
+        return view('user.index', compact('user'));
+    }
 
-/**
- * Show the form for creating a new resource.
- */
-public function create()
-{
-    $roles = Role::all();
-    return view('user.create', compact('roles'));
-}
+    /**
+     * Muestra el formulario para crear un nuevo usuario.
+     *
+     * @return \Illuminate\View\View
+     */
+    public function create()
+    {
+        $grupos = Group::all();
+        $roles = Role::all();
+        return view('user.create', compact('grupos', 'roles'));
+    }
 
-/**
- * Store a newly created resource in storage.
- */
+    
+   // En UserController.php
 public function store(Request $request)
 {
-    $request->validate([
-        'name' => 'required',
+    $validated = $request->validate([
+        'name' => 'required|string|max:255',
         'email' => 'required|email|unique:users',
-        'password' => 'required|min:8',
-        'roles' => 'required'
+        'password' => 'required',
+        'role' => 'required|exists:roles,name',
+        'group_id' => 'nullable|exists:groups,id' // Validación para grupo (opcional)
     ]);
 
-    $usuario = User::create([
-        'name' => $request->name,
-        'email' => $request->email,
-        'password' => bcrypt($request->password),
+    // Crear usuario
+    $user = User::create([
+        'name' => $validated['name'],
+        'email' => $validated['email'],
+        'password' => bcrypt($validated['password']),
+        'group_id' => $validated['group_id'] ?? null // Asignar grupo si existe
     ]);
-        // Paso 1: Obtener los nombres de los roles basados en los IDs enviados en el formulario
 
-    $roleNames = Role::whereIn('id', $request->roles)->pluck('name')->toArray();
+    // Asignar rol (usando Spatie)
+    $user->assignRole($validated['role']);
 
-    $usuario->syncRoles($roleNames);
+    // Generar token de acceso (para API)
+    $token = $user->createToken('auth_token')->plainTextToken;
 
-    return redirect()->route('user.index')->with('success', 'Usuario creado correctamente.');
+    return redirect()->route('user.index')->with([
+        'success' => 'Usuario registrado correctamente',
+        'token' => $token,
+        'new_user_id' => $user->id
+    ]);
 }
+    
 
-/**
- * Display the specified resource.
- */
-public function show(string $id)
-{
-    // Implementar si es necesario
-}
+ 
+    /**
+     * Muestra la lista de usuarios.
+     *
+     * @return \Illuminate\View\View
+     */
 
-/**
- * Show the form for editing the specified resource. 
- */
+
 public function edit(string $id)
 {
-    $usuario = User::findOrFail($id); // Corregir la variable a usuario
+    $user = User::findOrFail($id); // Corregir la variable a usuario
     $roles = Role::all();
-    return view('user.edit', compact('usuario', 'roles')); // Corregir el nombre de la variable a 'usuario'
+    $grupos = Group::all();
+
+    return view('user.edit', compact('user', 'roles','grupos')); // Corregir el nombre de la variable a 'usuario'
 }
 
 /**
  * Update the specified resource in storage.
  */
-public function update(Request $request, $id)
+public function update(Request $request, User $user)
 {
-    $usuario = User::findOrFail($id);
-
-    // Validación de los datos
-    $request->validate([
+    $rules = [
         'name' => 'required|string|max:255',
-        'email' => 'required|string|email|max:255|unique:users,email,' . $id,
-        'password' => 'nullable|string|min:8|confirmed',
-        'roles' => 'array|nullable'
-    ]);
+        'email' => 'required|email|unique:users,email,' . $user->id,
+        'role' => 'required|exists:roles,name',
+        'group_id' => 'nullable|exists:groups,id',
+        'password' => 'nullable|min:8|confirmed' // Opcional
+    ];
 
-    // Actualización de los datos del usuario
-    $usuario->name = $request->input('name');
-    $usuario->email = $request->input('email');
+    $validated = $request->validate($rules);
 
-    // Solo actualiza la contraseña si se ha llenado el campo
+    // Actualizar datos básicos
+    $user->update($request->only('name', 'email', 'group_id'));
+
+    // Actualizar contraseña (si se proporcionó)
     if ($request->filled('password')) {
-        $usuario->password = bcrypt($request->input('password'));
+        $user->update(['password' => bcrypt($validated['password'])]);
     }
 
-    // Sincroniza los roles si se envían
-    if ($request->has('roles')) {
-        $usuario->roles()->sync($request->input('roles'));
-    }
+    // Sincronizar rol
+    $user->syncRoles([$validated['role']]);
 
-    $usuario->save();
-
-    return redirect()->route('user.index')->with('success', 'Usuario actualizado exitosamente');
+    return redirect()->route('user.index')
+        ->with('success', 'Usuario actualizado correctamente');
 }
 
 
@@ -121,5 +129,25 @@ public function destroy(string $id)
     return redirect()->route('user.index')->with('success', 'Usuario eliminado correctamente.');
 }
 
-    
+
+
+public function notificaciones()
+{
+    $notificaciones = auth()->user()->notifications()->paginate(10);
+    return view('notificaciones.index', compact('notificaciones'));
+}
+
+public function marcarComoLeida(DatabaseNotification $notificacion)
+{
+    $this->authorize('update', $notificacion);
+    $notificacion->markAsRead();
+    return back()->with('success', 'Notificación marcada como leída');
+}
+
+public function marcarTodasComoLeidas()
+{
+    auth()->user()->unreadNotifications->markAsRead();
+    return back()->with('success', 'Todas las notificaciones marcadas como leídas');
+}
+
 }

@@ -5,67 +5,138 @@ namespace App\Http\Controllers;
 use App\Models\Compania;
 use App\Models\NumerosPoliza;
 use App\Models\Poliza;
+use App\Models\Notification;
 use App\Models\Ramo;
 use App\Models\Seguro;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
+use Illuminate\Validation\Rule; // <-- Añade esta línea
+
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class PolizasController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\View\View
-     */
     public function index(Request $request): View
-    {
-        $polizas = Poliza::with(['ramo', 'seguro', 'numeros_poliza', 'compania'])
-            ->when($request->filled('fecha_inicio'), function ($query) use ($request) {
-                $query->where('vigencia_inicio', '>=', $request->input('fecha_inicio'));
-            })
-            ->when($request->filled('fecha_fin'), function ($query) use ($request) {
-                $query->where('vigencia_fin', '<=', $request->input('fecha_fin'));
-            })
-            ->when($request->filled('companiaFilter'), function ($query) use ($request) {
-                $query->where('compania_id', $request->input('companiaFilter'));
-            })
-            ->when($request->filled('tipoFilter'), function ($query) use ($request) {
-                $query->where('tipo_prima', $request->input('tipoFilter'));
-            })
-            ->when($request->filled('statusFilter'), function ($query) use ($request) {
-                if ($request->input('statusFilter') === 'vigente') {
-                    $query->where('vigencia_fin', '>', now());
-                } elseif ($request->input('statusFilter') === 'vencida') {
-                    $query->where('vigencia_fin', '<=', now());
-                }
-            })
-            ->latest()
-            ->paginate(10)
-            ->withQueryString();
+{
+    $user = auth()->user();
 
-        $companias = Compania::all();
+    $query = Poliza::with([
+        'ramo:id,nombre',
+        'seguro:id,nombre',
+        'numeros_poliza:id,numero_poliza',
+        'compania:id,nombre',
+        'pagos_fraccionados:id,poliza_id,importe,fecha_limite_pago',
+        'user:id,name'
 
-        return view('polizas.index', compact('polizas', 'companias'));
+    ]);
+
+    // Aplicar filtro por grupo si no es admin
+    if (!$user->hasRole('admin')) {
+        $query->where('group_id', $user->group_id);
     }
-    public function verPdf($id)
+
+    // Filtros dinámicos (fechas, compañía, etc.)
+    $this->applyFilters($query, $request);
+
+    // Paginado y orden
+    $polizas = $query->latest('vigencia_inicio')->paginate(10);
+
+    // Datos para los filtros
+    $companias = Compania::orderBy('nombre')->get(['id', 'nombre']);
+    $tiposPrima = Poliza::distinct()->pluck('tipo_prima');
+
+    return view('polizas.index', [
+        'polizas' => $polizas,
+        'companias' => $companias,
+        'tiposPrima' => $tiposPrima,
+        'filters' => $request->only(['fecha_inicio', 'fecha_fin', 'companiaFilter', 'tipoFilter', 'statusFilter'])
+    ]);
+}
+
+    protected function applyFilters($query, $request)
+{
+    // Validar rango de fechas si ambas están presentes
+    if ($request->filled(['fecha_inicio', 'fecha_fin'])) {
+        $fechaInicio = $request->input('fecha_inicio');
+        $fechaFin = $request->input('fecha_fin');
+        
+        if ($fechaInicio > $fechaFin) {
+            throw new \Exception('La fecha de inicio no puede ser mayor a la fecha final');
+        }
+        
+        $query->whereBetween('vigencia_inicio', [$fechaInicio, $fechaFin]);
+    } else {
+        // Filtros individuales de fecha
+        if ($request->filled('fecha_inicio')) {
+            $query->where('vigencia_inicio', '>=', $request->input('fecha_inicio'));
+        }
+        if ($request->filled('fecha_fin')) {
+            $query->where('vigencia_fin', '<=', $request->input('fecha_fin'));
+        }
+    }
+
+    // Filtro por compañía con validación
+    if ($request->filled('companiaFilter')) {
+        $companiaId = $request->input('companiaFilter');
+        if (!Compania::where('id', $companiaId)->exists()) {
+            throw new \Exception('La compañía seleccionada no existe');
+        }
+        $query->where('compania_id', $companiaId);
+    }
+
+    // Filtro por tipo de prima con validación
+    if ($request->filled('tipoFilter')) {
+        $tipoPrima = $request->input('tipoFilter');
+        $tiposValidos = ['Anual', 'Fraccionado']; // Ajusta según tus valores reales
+        
+        if (!in_array($tipoPrima, $tiposValidos)) {
+            throw new \Exception('Tipo de prima no válido');
+        }
+        $query->where('tipo_prima', $tipoPrima);
+    }
+
+    // Filtro por estado
+    if ($request->filled('statusFilter')) {
+        $status = $request->input('statusFilter');
+        $now = now()->format('Y-m-d');
+        
+        if (!in_array($status, ['vigente', 'vencida'])) {
+            throw new \Exception('Estado de póliza no válido');
+        }
+        
+        if ($status === 'vigente') {
+            $query->where('vigencia_fin', '>=', $now);
+        } elseif ($status === 'vencida') {
+            $query->where('vigencia_fin', '<', $now);
+        }
+    }
+
+    return $query;
+}
+
+    public function obtenerDatosSeguro($seguroId)
     {
-        $poliza = Poliza::with('numeros_polizas')->findOrFail($id);
+        $seguro = Seguro::findOrFail($seguroId);
     
-        $ruta = $poliza->numeros_polizas->ruta_pdf;
-    
-        if (!file_exists($ruta)) {
-            abort(404, 'Archivo no encontrado.');
+        $ramos = [];
+        if ($seguro->ramo) { // Asumiendo relación directa Seguro -> Ramo
+            $ramos = [$seguro->ramo];
+        } elseif ($seguro->ramos) { // Si es una relación muchos a muchos
+            $ramos = $seguro->ramos()->get();
         }
     
-        return response()->file($ruta); // También puedes usar ->download($ruta)
+        $companias = $seguro->companias()->get(); // Asumiendo relación muchos a muchos Seguro -> Compañia
+    
+        return response()->json([
+            'ramos' => $ramos,
+            'companias' => $companias,
+        ]);
     }
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\View\View
-     */
+  
     public function create(): View
     {
         $ramos = Ramo::all()->pluck('nombre', 'id');
@@ -76,12 +147,7 @@ class PolizasController extends Controller
         return view('polizas.create', compact('ramos', 'seguros', 'numeros_polizas', 'companias'));
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
-     */
+   
     public function store(Request $request): \Illuminate\Http\RedirectResponse
     {
         $request->validate([
@@ -104,78 +170,137 @@ class PolizasController extends Controller
         return Redirect::route('polizas.index')->with('success', 'Póliza creada exitosamente.');
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\Models\Poliza  $poliza
-     * @return \Illuminate\View\View
-     */
+    
     public function show(Poliza $poliza): View
     {
         $poliza->load(['ramo', 'seguro', 'numeros_poliza', 'compania', 'pagosFraccionados']);
         return view('polizas.show', compact('poliza'));
     }
-
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\Models\Poliza  $poliza
-     * @return \Illuminate\View\View
-     */
+    public function notificar(Poliza $poliza)
+    {
+        // Lógica para enviar notificaciones
+        // ...
+        
+        return response()->json(['message' => 'Notificaciones enviadas correctamente']);
+    }
     public function edit(Poliza $poliza): View
     {
         $poliza->load(['ramo', 'seguro', 'numeros_poliza', 'compania']);
         $ramos = Ramo::all()->pluck('nombre', 'id');
         $seguros = Seguro::all()->pluck('nombre', 'id');
-        $numerosPolizas = NumerosPoliza::all()->pluck('numero_poliza', 'id');
+        $numeros_polizas = NumerosPoliza::all();
         $companias = Compania::all()->pluck('nombre', 'id');
+        $notificaciones = $poliza->notificaciones()->get();
 
-        return view('polizas.edit', compact('poliza', 'ramos', 'seguros', 'numerosPolizas', 'companias'));
+
+        return view('polizas.edit', compact('poliza', 'ramos', 'seguros', 'numeros_polizas', 'companias', 'notificaciones'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Poliza  $poliza
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    public function update(Request $request, Poliza $poliza): \Illuminate\Http\RedirectResponse
-    {
-        $request->validate([
-            'ramo_id' => 'required|exists:ramos,id',
-            'seguro_id' => 'required|exists:seguros,id',
-            'numero_poliza_id' => 'required|exists:numeros_polizas,id',
-            'compania_id' => 'required|exists:companias,id',
-            'nombre_cliente' => 'required|string|max:255',
-            'vigencia_inicio' => 'required|date',
-            'vigencia_fin' => 'required|date|after:vigencia_inicio',
-            'forma_pago' => 'nullable|string|max:50',
-            'prima_total' => 'required|numeric|min:0',
-            'primer_pago_fraccionado' => 'nullable|date|before_or_equal:vigencia_inicio',
-            'tipo_prima' => 'required|string|max:50',
-            'ruta_pdf' => 'nullable|string|max:255',
+
+    
+    public function update(Request $request, $id)
+{
+    $poliza = Poliza::findOrFail($id);
+    
+    $validatedData = $request->validate([
+        'ramo_id' => 'required|exists:ramos,id',
+        'seguro_id' => 'required|exists:seguros,id',
+        'compania_id' => 'required|exists:companias,id',
+        'nombre_cliente' => 'required|string|max:255',
+        'numero_poliza' => [
+            'required',
+            'string',
+            'max:255',
+            Rule::unique('numeros_polizas', 'numero_poliza')->ignore($poliza->numero_poliza_id)
+        ],
+        'vigencia_inicio' => 'required|date',
+        'vigencia_fin' => 'required|date|after:vigencia_inicio',
+        'forma_pago' => 'nullable|string|max:255',
+        'prima_total' => 'required|numeric|min:0',
+        'primer_pago_fraccionado' => 'nullable|date|before_or_equal:vigencia_inicio',
+        'tipo_prima' => 'required|string|max:255',
+        'ruta_pdf' => 'nullable|file|mimes:pdf|max:2048'
+    ]);
+
+    DB::beginTransaction();
+    try {
+        // 1. Verificar si cambió ramo, seguro o compañía
+        $cambioEstructura = ($poliza->ramo_id != $request->ramo_id) || 
+                          ($poliza->seguro_id != $request->seguro_id) || 
+                          ($poliza->compania_id != $request->compania_id);
+
+        // 2. Eliminar PDF antiguo si cambió la estructura o se sube nuevo archivo
+        if (($cambioEstructura || $request->hasFile('ruta_pdf')) && $poliza->ruta_pdf) {
+            Storage::delete($poliza->ruta_pdf);
+            $validatedData['ruta_pdf'] = null; // Limpiar la ruta si cambió estructura
+        }
+
+        // 3. Actualizar número de póliza
+        $numeroPoliza = NumerosPoliza::updateOrCreate(
+            ['id' => $poliza->numero_poliza_id],
+            ['numero_poliza' => $validatedData['numero_poliza']]
+        );
+        $validatedData['numero_poliza_id'] = $numeroPoliza->id;
+        
+        // 4. Subir nuevo PDF si se proporcionó
+        if ($request->hasFile('ruta_pdf')) {
+            $ramo = Ramo::find($request->ramo_id)->nombre;
+            $seguro = Seguro::find($request->seguro_id)->nombre;
+            $compania = Compania::find($request->compania_id)->nombre;
+            
+            $directorio = "polizas_organizadas/{$seguro}/{$compania}/{$ramo}";
+            $nombreArchivo = "Poliza_{$poliza->id}.pdf";
+            $rutaArchivo = $request->file('ruta_pdf')->storeAs($directorio, $nombreArchivo, 'public');
+            $validatedData['ruta_pdf'] = $rutaArchivo;
+        }
+        
+        // 5. Actualizar la póliza
+        $poliza->update($validatedData);
+
+        DB::commit();
+        return redirect()->route('polizas.index')->with([
+            'success' => 'Póliza actualizada correctamente',
+            'reload' => true
         ]);
 
-        $poliza->update($request->all());
-
-        return Redirect::route('polizas.index')->with('success', 'Póliza actualizada exitosamente.');
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Error al actualizar póliza: ' . $e->getMessage());
+        return back()->with('error', 'Error al actualizar: ' . $e->getMessage());
     }
-
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\Models\Poliza  $poliza
-     * @return \Illuminate\Http\RedirectResponse
-     */
-    public function destroy(Poliza $poliza): \Illuminate\Http\RedirectResponse
-    {
-        // Eliminar los pagos fraccionados asociados a esta póliza
+}
+public function destroy(Poliza $poliza): \Illuminate\Http\RedirectResponse
+{
+    DB::beginTransaction();
+    try {
+        // Eliminar PDF asociado si existe
+        if ($poliza->ruta_pdf) {
+            // 1. Eliminar el archivo
+            Storage::delete($poliza->ruta_pdf);
+            
+            // 2. Obtener la ruta del directorio
+            $directorio = dirname($poliza->ruta_pdf);
+            
+            // 3. Verificar si el directorio está vacío
+            if (count(Storage::files($directorio)) == 0 && 
+                count(Storage::directories($directorio)) == 0) {
+                // 4. Eliminar el directorio si está vacío
+                Storage::deleteDirectory($directorio);
+            }
+        }
+        
+        // Eliminar los pagos fraccionados
         $poliza->pagos_fraccionados()->delete();
-
-        // Luego, eliminar la póliza
+        
+        // Eliminar la póliza
         $poliza->delete();
-
-        return Redirect::route('polizas.index')->with('success', 'Póliza eliminada exitosamente.');
+        
+        DB::commit();
+        return redirect()->route('polizas.index')->with('success', 'Póliza eliminada exitosamente.');
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Error al eliminar póliza: ' . $e->getMessage());
+        return redirect()->route('polizas.index')->with('error', 'Ocurrió un error al eliminar la póliza: ' . $e->getMessage());
     }
+}
 }

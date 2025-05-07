@@ -71,4 +71,8 @@ class Kernel extends HttpKernel
         'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
     ];
 
+    protected $commands = [
+        \App\Console\Commands\CheckPolicyNotifications::class,
+        // ... otros comandos
+    ];
 }

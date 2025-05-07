@@ -18,6 +18,10 @@ return new class extends Migration
             $table->foreignId('seguro_id')->constrained('seguros')->onDelete('cascade');
             $table->foreignId('numero_poliza_id')->constrained('numeros_polizas')->onDelete('cascade');
             $table->foreignId('compania_id')->constrained('companias')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+
+            $table->foreignId('group_id')->nullable()->constrained()->nullOnDelete();
+
             $table->string('nombre_cliente', 255);
             $table->date('vigencia_inicio');
             $table->date('vigencia_fin');

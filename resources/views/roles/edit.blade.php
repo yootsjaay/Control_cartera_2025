@@ -12,7 +12,7 @@
         <div class="card-body">
             <form action="{{ route('roles.update', $role->id) }}" method="POST">
                 @csrf
-                @method('PUT')
+                @method('PATCH')
 
                 <div class="mb-3">
                     <label for="name" class="form-label">Nombre del Rol</label>

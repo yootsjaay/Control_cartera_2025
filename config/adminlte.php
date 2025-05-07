@@ -63,7 +63,7 @@ return [
     |
     */
 
-    'logo' => '<b>Preevisa</b>ControlPolizas',
+    'logo' => '<b></b>ControlPolizas',
     'logo_img' => '',
     'logo_img_class' => 'brand-image img-circle elevation-3',
     'logo_img_xl' => null,
@@ -298,7 +298,8 @@ return [
     |
     */
 
-    'menu' => [
+   'menu' => [
+
     // Navbar items
     [
         'type'         => 'navbar-search',
@@ -310,7 +311,7 @@ return [
         'topnav_right' => true,
     ],
 
-    // Sidebar items
+    // Sidebar search
     [
         'type' => 'sidebar-menu-search',
         'text' => 'search',
@@ -323,56 +324,29 @@ return [
         'icon' => 'fas fa-tachometer-alt',
     ],
 
+    // Notificaciones
+    [
+        'text' => 'Notificaciones',
+        'url'  => 'notificaciones/index',
+        'icon' => 'fas fa-bell',
+    ],
+
     // Gestión de Pólizas
     [
         'text'    => 'Gestión de Pólizas',
         'icon'    => 'fas fa-file-alt',
-        'can'     => 'ver pólizas',
+        'can'     => 'ver polizas',
         'submenu' => [
             [
                 'text' => 'Listado de Pólizas',
                 'url'  => 'polizas',
                 'icon' => 'fas fa-list',
-                'can'  => 'ver pólizas',
-            ],
-           
-            
-           
-            [
-                'text' => 'Vencidas',
-                'url'  => 'polizas/vencidas',
-                'icon' => 'fas fa-calendar-times',
-                'can'  => 'pólizas vencidas',
-            ],
-           
-        ],
-    ],
-
-   
-    // Módulo Administrativo
-    [
-        'text'    => 'Administración',
-        'icon'    => 'fas fa-building-shield',
-        'can'     => 'gestionar sistema',
-        'submenu' => [
-            [
-                'text' => 'Compañías Aseguradoras',
-                'url'  => 'companias',
-                'icon' => 'fas fa-house-chimney',
-                'can'  => 'gestionar sistema',
-            ],
-            [
-                'text' => 'Tipos de Seguros',
-                'url'  => 'seguros',
-                'icon' => 'fas fa-shield',
-                'can'  => 'gestionar sistema',
+                'can'  => 'ver polizas',
             ],
         ],
     ],
 
-    
-
-    // Gestión de Usuarios
+    // Gestión de Usuarios y Seguridad
     [
         'text'    => 'Seguridad',
         'icon'    => 'fas fa-user-lock',
@@ -388,26 +362,22 @@ return [
                 'text' => 'Roles',
                 'url'  => 'roles',
                 'icon' => 'fas fa-key',
-                'can'  => 'ver roles y permisos',
+                'can'  => 'ver roles',
                 'submenu' => [
                     [
                         'text' => 'Listado de Roles',
                         'url'  => 'roles',
                         'icon' => 'fas fa-list',
-                        'can'  => 'ver roles y permisos',
+                        'can'  => 'ver roles',
                     ],
-                    [
-                        'text' => 'Crear Rol',
-                        'url'  => 'roles/create',
-                        'icon' => 'fas fa-plus-circle',
-                        'can'  => 'crear roles',
-                    ],
+                    
                 ],
             ],
         ],
-        
     ],
+
 ],
+
 
 
     /*

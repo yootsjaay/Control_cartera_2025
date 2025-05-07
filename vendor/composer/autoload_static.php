@@ -650,8 +650,10 @@ class ComposerStaticInitcbed58921fb40526dd756235091dd357
     );
 
     public static $classMap = array (
+        'App\\Console\\Commands\\CheckPolicyNotifications' => __DIR__ . '/../..' . '/app/Console/Commands/CheckPolicyNotifications.php',
         'App\\Console\\Kernel' => __DIR__ . '/../..' . '/app/Console/Kernel.php',
         'App\\Exceptions\\Handler' => __DIR__ . '/../..' . '/app/Exceptions/Handler.php',
+        'App\\Http\\Controllers\\AuthTokenController' => __DIR__ . '/../..' . '/app/Http/Controllers/AuthTokenController.php',
         'App\\Http\\Controllers\\Auth\\AuthenticatedSessionController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/AuthenticatedSessionController.php',
         'App\\Http\\Controllers\\Auth\\ConfirmablePasswordController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/ConfirmablePasswordController.php',
         'App\\Http\\Controllers\\Auth\\EmailVerificationNotificationController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/EmailVerificationNotificationController.php',
@@ -663,6 +665,8 @@ class ComposerStaticInitcbed58921fb40526dd756235091dd357
         'App\\Http\\Controllers\\Auth\\VerifyEmailController' => __DIR__ . '/../..' . '/app/Http/Controllers/Auth/VerifyEmailController.php',
         'App\\Http\\Controllers\\CompaniasController' => __DIR__ . '/../..' . '/app/Http/Controllers/CompaniasController.php',
         'App\\Http\\Controllers\\Controller' => __DIR__ . '/../..' . '/app/Http/Controllers/Controller.php',
+        'App\\Http\\Controllers\\DashboardController' => __DIR__ . '/../..' . '/app/Http/Controllers/DashboardController.php',
+        'App\\Http\\Controllers\\PolicyDashboardController' => __DIR__ . '/../..' . '/app/Http/Controllers/PolicyDashboardController.php',
         'App\\Http\\Controllers\\PolizasController' => __DIR__ . '/../..' . '/app/Http/Controllers/PolizasController.php',
         'App\\Http\\Controllers\\ProfileController' => __DIR__ . '/../..' . '/app/Http/Controllers/ProfileController.php',
         'App\\Http\\Controllers\\RoleController' => __DIR__ . '/../..' . '/app/Http/Controllers/RoleController.php',
@@ -686,6 +690,7 @@ class ComposerStaticInitcbed58921fb40526dd756235091dd357
         'App\\Jobs\\NotificarPolizasPorVencer' => __DIR__ . '/../..' . '/app/Jobs/NotificarPolizasPorVencer.php',
         'App\\Models\\Compania' => __DIR__ . '/../..' . '/app/Models/Compania.php',
         'App\\Models\\CompaniaSeguro' => __DIR__ . '/../..' . '/app/Models/CompaniaSeguro.php',
+        'App\\Models\\Group' => __DIR__ . '/../..' . '/app/Models/Group.php',
         'App\\Models\\Job' => __DIR__ . '/../..' . '/app/Models/Job.php',
         'App\\Models\\ModelHasPermission' => __DIR__ . '/../..' . '/app/Models/ModelHasPermission.php',
         'App\\Models\\ModelHasRole' => __DIR__ . '/../..' . '/app/Models/ModelHasRole.php',
@@ -700,7 +705,8 @@ class ComposerStaticInitcbed58921fb40526dd756235091dd357
         'App\\Models\\Seguro' => __DIR__ . '/../..' . '/app/Models/Seguro.php',
         'App\\Models\\User' => __DIR__ . '/../..' . '/app/Models/User.php',
         'App\\Notifications\\InvoicePaid' => __DIR__ . '/../..' . '/app/Notifications/InvoicePaid.php',
-        'App\\Notifications\\PolizaPorVencer' => __DIR__ . '/../..' . '/app/Notifications/PolizaPorVencer.php',
+        'App\\Notifications\\PagoPorVencerNotification' => __DIR__ . '/../..' . '/app/Notifications/PagoPorVencerNotification.php',
+        'App\\Notifications\\PolizaPorVencerNotification' => __DIR__ . '/../..' . '/app/Notifications/PolizaPorVencerNotification.php',
         'App\\Policies\\PolizaPolicy' => __DIR__ . '/../..' . '/app/Policies/PolizaPolicy.php',
         'App\\Providers\\AppServiceProvider' => __DIR__ . '/../..' . '/app/Providers/AppServiceProvider.php',
         'App\\Providers\\AuthServiceProvider' => __DIR__ . '/../..' . '/app/Providers/AuthServiceProvider.php',
