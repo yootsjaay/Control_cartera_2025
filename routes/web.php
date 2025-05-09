@@ -35,18 +35,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // 👥 Usuarios
     Route::prefix('usuarios')->middleware('permission:ver usuarios')->group(function () {
         Route::get('/', [UserController::class, 'index'])->name('user.index');
+        Route::resource('users', UserController::class)->names('users');
 
-        Route::middleware('permission:crear usuarios')->group(function () {
-            Route::get('/crear', [UserController::class, 'create'])->name('user.create');
-            Route::post('/', [UserController::class, 'store'])->name('user.store');
-        });
-
-        Route::middleware('permission:editar usuarios')->group(function () {
-            Route::get('/{usuario}/editar', [UserController::class, 'edit'])->name('user.edit');
-            Route::match(['put', 'patch'], '/{usuario}', [UserController::class, 'update'])->name('user.update');
-        });
-
-        Route::middleware('permission:eliminar usuarios')->delete('/{usuario}', [UserController::class, 'destroy'])->name('user.destroy');
     });
 
     // 📄 Pólizas

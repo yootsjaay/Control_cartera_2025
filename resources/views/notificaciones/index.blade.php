@@ -100,7 +100,7 @@
                                            title="Ver detalles">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="{{ route('polizas.renew', $poliza->id) }}" 
+                                        <a href="" 
                                            class="btn btn-sm btn-success"
                                            title="Renovar póliza">
                                             <i class="fas fa-sync-alt"></i>

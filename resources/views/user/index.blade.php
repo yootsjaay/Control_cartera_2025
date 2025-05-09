@@ -1,51 +1,35 @@
 @extends('adminlte::page')
 
-@section('title', 'Gestión de Usuarios')
+@section('title', 'Listado de Usuarios')
 
 @section('content_header')
-    <h1>Usuarios Registrados</h1>
+    <h1>Listado de Usuarios</h1>
 @stop
 
 @section('content')
-<div class="container-fluid">
-    <!-- Alertas -->
     @if(session('success'))
-    <div class="alert alert-success">
-        {{ session('success') }}
-    </div>
+        <div class="alert alert-success">
+            {{ session('success') }}
+            @if(session('token'))
+                <div class="mt-2">
+                    <strong>Token:</strong> 
+                    <code class="bg-light p-1 rounded">{{ session('token') }}</code>
+                    <button id="copyToken" class="btn btn-sm btn-outline-secondary ml-2">Copiar</button>
+                    <small class="text-muted d-block">¡Guárdalo ahora! No se mostrará nuevamente.</small>
+                </div>
+            @endif
+        </div>
     @endif
 
-    @if(session('error'))
-    <div class="alert alert-danger">
-        {{ session('error') }}
-    </div>
-    @endif
-    @if(session('token'))
-    <div class="alert alert-info">
-        <strong>Token de acceso:</strong>
-        <span style="display:inline-block; background:#f1f1f1; padding:5px 10px; border-radius:5px; font-family:monospace; color:#333;">
-            {{ session('token') }}
-        </span>
-        <br>
-        <small>Guárdalo bien, este token solo se muestra una vez.</small>
-    </div>
-@endif
-
-
-
-    <!-- Botón nuevo -->
-    <div class="mb-3 text-right">
-        <a href="{{ route('user.create') }}" class="btn btn-primary">
-            Nuevo Usuario
-        </a>
-    </div>
-
-    <!-- Tabla -->
     <div class="card">
+        <div class="card-header">
+            <a href="{{ route('users.create') }}" class="btn btn-primary">Nuevo Usuario</a>
+        </div>
         <div class="card-body">
-            <table id="usuarios-table" class="table table-bordered table-striped">
+            <table id="users-table" class="table table-striped table-bordered" style="width:100%">
                 <thead>
                     <tr>
+                        <th>ID</th>
                         <th>Nombre</th>
                         <th>Email</th>
                         <th>Grupo</th>
@@ -54,50 +38,124 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($user as $user)
+                    @foreach($users as $user)
                     <tr>
+                        <td>{{ $user->id }}</td>
                         <td>{{ $user->name }}</td>
                         <td>{{ $user->email }}</td>
                         <td>{{ $user->group->nombre ?? 'Sin grupo' }}</td>
                         <td>
-                            @foreach($user->getRoleNames() as $role)
-                            <span class="badge badge-secondary">{{ $role }}</span>
+                            @foreach($user->roles as $role)
+                                <span class="badge badge-primary">{{ $role->name }}</span>
                             @endforeach
                         </td>
                         <td>
-                            <a href="{{ route('user.edit', $user->id) }}" class="btn btn-sm btn-warning">Editar</a>
-                            <form action="{{ route('user.destroy', $user->id) }}" method="POST" class="d-inline" onsubmit="return confirm('¿Eliminar este usuario?')">
+                            <a href="{{ route('users.show', $user) }}" class="btn btn-sm btn-info" title="Ver">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="{{ route('users.edit', $user) }}" class="btn btn-sm btn-warning" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <form action="{{ route('users.destroy', $user) }}" method="POST" style="display: inline;">
                                 @csrf
                                 @method('DELETE')
-                                <button class="btn btn-sm btn-danger" type="submit">Eliminar</button>
+                                <button type="submit" class="btn btn-sm btn-danger" title="Eliminar" onclick="return confirm('¿Estás seguro?')">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
                             </form>
                         </td>
                     </tr>
-                    @empty
-                    <tr>
-                        <td colspan="5" class="text-center">No hay usuarios registrados</td>
-                    </tr>
-                    @endforelse
+                    @endforeach
                 </tbody>
+                <tfoot>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Grupo</th>
+                        <th>Roles</th>
+                        <th>Acciones</th>
+                    </tr>
+                </tfoot>
             </table>
         </div>
     </div>
-</div>
 @stop
 
 @section('css')
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css">
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.bootstrap4.min.css">
 @stop
 
 @section('js')
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
-<script>
-    $(document).ready(function () {
-        $('#usuarios-table').DataTable({
-           
-            responsive: true
+    <!-- jQuery, DataTables y plugins -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.bootstrap4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.colVis.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Inicialización de DataTable
+            var table = $('#users-table').DataTable({
+                responsive: true,
+                dom: '<"row"<"col-md-6"B><"col-md-6"f>>' +
+                     '<"row"<"col-md-12"tr>>' +
+                     '<"row"<"col-md-5"i><"col-md-7"p>>',
+                buttons: [
+                    {
+                        extend: 'copy',
+                        text: '<i class="fas fa-copy"></i> Copiar',
+                        className: 'btn btn-secondary'
+                    },
+                    {
+                        extend: 'excel',
+                        text: '<i class="fas fa-file-excel"></i> Excel',
+                        className: 'btn btn-success'
+                    },
+                    {
+                        extend: 'pdf',
+                        text: '<i class="fas fa-file-pdf"></i> PDF',
+                        className: 'btn btn-danger'
+                    },
+                    {
+                        extend: 'print',
+                        text: '<i class="fas fa-print"></i> Imprimir',
+                        className: 'btn btn-info'
+                    },
+                    {
+                        extend: 'colvis',
+                        text: '<i class="fas fa-eye"></i> Columnas',
+                        className: 'btn btn-warning'
+                    }
+                ],
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/es-ES.json'
+                },
+                columnDefs: [
+                    {
+                        targets: -1,
+                        orderable: false,
+                        searchable: false
+                    }
+                ]
+            });
+
+            // Copiar token al portapapeles
+            $('#copyToken').on('click', function() {
+                const token = "{{ session('token') }}";
+                navigator.clipboard.writeText(token).then(function() {
+                    toastr.success('Token copiado al portapapeles');
+                }).catch(function() {
+                    toastr.error('Error al copiar el token');
+                });
+            });
         });
-    });
-</script>
+    </script>
 @stop

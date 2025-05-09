@@ -2,152 +2,145 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Group;
+
+use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Group;
+use Spatie\Permission\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
-use Illuminate\Notifications\DatabaseNotification;
-
+use Illuminate\Validation\Rules;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class UserController extends Controller
 {
-
-
+    /**
+     * Display a listing of the resource.
+     */
     public function index()
     {
-        $user = User::with('roles', 'group')->paginate(10); // Ejemplo de paginación
-        return view('user.index', compact('user'));
+        $users = User::with(['group', 'roles'])->latest()->paginate(10);
+        return view('user.index', compact('users'));
     }
 
     /**
-     * Muestra el formulario para crear un nuevo usuario.
-     *
-     * @return \Illuminate\View\View
+     * Show the form for creating a new resource.
      */
     public function create()
     {
-        $grupos = Group::all();
+        $groups = Group::all();
         $roles = Role::all();
-        return view('user.create', compact('grupos', 'roles'));
+        return view('user.create', compact('groups', 'roles'));
     }
 
-    
-   // En UserController.php
-public function store(Request $request)
-{
-    $validated = $request->validate([
-        'name' => 'required|string|max:255',
-        'email' => 'required|email|unique:users',
-        'password' => 'required',
-        'role' => 'required|exists:roles,name',
-        'group_id' => 'nullable|exists:groups,id' // Validación para grupo (opcional)
-    ]);
-
-    // Crear usuario
-    $user = User::create([
-        'name' => $validated['name'],
-        'email' => $validated['email'],
-        'password' => bcrypt($validated['password']),
-        'group_id' => $validated['group_id'] ?? null // Asignar grupo si existe
-    ]);
-
-    // Asignar rol (usando Spatie)
-    $user->assignRole($validated['role']);
-
-    // Generar token de acceso (para API)
-    $token = $user->createToken('auth_token')->plainTextToken;
-
-    return redirect()->route('user.index')->with([
-        'success' => 'Usuario registrado correctamente',
-        'token' => $token,
-        'new_user_id' => $user->id
-    ]);
-}
-    
-
- 
     /**
-     * Muestra la lista de usuarios.
-     *
-     * @return \Illuminate\View\View
+     * Store a newly created resource in storage.
      */
+   public function store(Request $request)
+    {
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'group_id' => ['required', 'exists:groups,id'],
+            'roles' => ['required', 'array'],
+            'roles.*' => ['exists:roles,id'],
+            'generate_token' => ['nullable', 'boolean']
+        ]);
 
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+            'group_id' => $request->group_id,
+        ]);
 
-public function edit(string $id)
-{
-    $user = User::findOrFail($id); // Corregir la variable a usuario
-    $roles = Role::all();
-    $grupos = Group::all();
+        $roles = Role::whereIn('id', $request->roles)->pluck('name');
+        $user->syncRoles($roles);
 
-    return view('user.edit', compact('user', 'roles','grupos')); // Corregir el nombre de la variable a 'usuario'
-}
+        $tokenMessage = '';
+        if ($request->generate_token) {
+            $token = $user->createToken('api-token')->plainTextToken;
+            $tokenMessage = ' | Token API: '.$token;
+        }
 
-/**
- * Update the specified resource in storage.
- */
-public function update(Request $request, User $user)
-{
-    $rules = [
-        'name' => 'required|string|max:255',
-        'email' => 'required|email|unique:users,email,' . $user->id,
-        'role' => 'required|exists:roles,name',
-        'group_id' => 'nullable|exists:groups,id',
-        'password' => 'nullable|min:8|confirmed' // Opcional
-    ];
-
-    $validated = $request->validate($rules);
-
-    // Actualizar datos básicos
-    $user->update($request->only('name', 'email', 'group_id'));
-
-    // Actualizar contraseña (si se proporcionó)
-    if ($request->filled('password')) {
-        $user->update(['password' => bcrypt($validated['password'])]);
+        return redirect()->route('users.index')
+            ->with('success', 'Usuario creado correctamente'.$tokenMessage)
+            ->with('token', $request->generate_token ? $token : null);
     }
 
-    // Sincronizar rol
-    $user->syncRoles([$validated['role']]);
 
-    return redirect()->route('user.index')
-        ->with('success', 'Usuario actualizado correctamente');
-}
+    /**
+     * Display the specified resource.
+     */
+    public function show(User $user)
+    {
+        return view('user.show', compact('user'));
+    }
 
+    /**
+     * Show the form for editing the specified resource.
+     */
+    public function edit(User $user)
+    {
+        $groups = Group::all();
+        $roles = Role::all();
+        return view('user.edit', compact('user', 'groups', 'roles'));
+    }
 
-/**
- * Remove the specified resource from storage.
- */
-public function destroy(string $id)
-{
-    // Encontrar el usuario por su ID
-    $usuario = User::findOrFail($id);
-    
-    // Eliminar al usuario
-    $usuario->delete();
-    
-    // Redirigir con un mensaje de éxito
-    return redirect()->route('user.index')->with('success', 'Usuario eliminado correctamente.');
-}
+    /**
+     * Update the specified resource in storage.
+     */
+    public function update(Request $request, User $user)
+    {
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,'.$user->id],
+            'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
+            'group_id' => ['required', 'exists:groups,id'],
+            'roles' => ['required', 'array'],
+            'roles.*' => ['exists:roles,id'],
+            'generate_token' => ['nullable', 'boolean'],
+            'revoke_tokens' => ['nullable', 'boolean']
+        ]);
 
+        $user->update([
+            'name' => $request->name,
+            'email' => $request->email,
+            'group_id' => $request->group_id,
+        ]);
 
+        if ($request->password) {
+            $user->update(['password' => Hash::make($request->password)]);
+        }
 
-public function notificaciones()
-{
-    $notificaciones = auth()->user()->notifications()->paginate(10);
-    return view('notificaciones.index', compact('notificaciones'));
-}
+        $roles = Role::whereIn('id', $request->roles)->pluck('name');
+        $user->syncRoles($roles);
 
-public function marcarComoLeida(DatabaseNotification $notificacion)
-{
-    $this->authorize('update', $notificacion);
-    $notificacion->markAsRead();
-    return back()->with('success', 'Notificación marcada como leída');
-}
+        $tokenMessage = '';
+        if ($request->generate_token) {
+            // Revoke existing tokens first if needed
+            if ($request->revoke_tokens) {
+                $user->tokens()->delete();
+            }
+            $token = $user->createToken('api-token')->plainTextToken;
+            $tokenMessage = ' | Nuevo Token API: '.$token;
+        } elseif ($request->revoke_tokens) {
+            $user->tokens()->delete();
+            $tokenMessage = ' | Todos los tokens revocados';
+        }
 
-public function marcarTodasComoLeidas()
-{
-    auth()->user()->unreadNotifications->markAsRead();
-    return back()->with('success', 'Todas las notificaciones marcadas como leídas');
-}
+        return redirect()->route('users.index')
+            ->with('success', 'Usuario actualizado correctamente'.$tokenMessage)
+            ->with('token', $request->generate_token ? $token : null);
+    }
 
+    /**
+     * Remove the specified resource from storage.
+     */
+    public function destroy(User $user)
+    {
+        $user->delete();
+        return redirect()->route('users.index')->with('success', 'Usuario eliminado correctamente.');
+    }
 }

@@ -190,10 +190,9 @@ class PolizasController extends Controller
         $seguros = Seguro::all()->pluck('nombre', 'id');
         $numeros_polizas = NumerosPoliza::all();
         $companias = Compania::all()->pluck('nombre', 'id');
-        $notificaciones = $poliza->notificaciones()->get();
 
 
-        return view('polizas.edit', compact('poliza', 'ramos', 'seguros', 'numeros_polizas', 'companias', 'notificaciones'));
+        return view('polizas.edit', compact('poliza', 'ramos', 'seguros', 'numeros_polizas', 'companias'));
     }
 
 
