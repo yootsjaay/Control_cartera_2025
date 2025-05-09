@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Group;
@@ -19,13 +18,10 @@ class UserController extends Controller
      */
     public function index()
     {
-        $users = User::with(['group', 'roles'])->latest()->paginate(10);
+        $users = User::with(['groups', 'roles'])->latest()->paginate(10);
         return view('user.index', compact('users'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         $groups = Group::all();
@@ -36,13 +32,14 @@ class UserController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-   public function store(Request $request)
+    public function store(Request $request)
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:'.User::class],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'group_id' => ['required', 'exists:groups,id'],
+            'groups' => ['required', 'array'],
+            'groups.*' => ['exists:groups,id'],
             'roles' => ['required', 'array'],
             'roles.*' => ['exists:roles,id'],
             'generate_token' => ['nullable', 'boolean']
@@ -52,8 +49,9 @@ class UserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'group_id' => $request->group_id,
         ]);
+
+        $user->groups()->attach($request->groups); // Asignar grupos
 
         $roles = Role::whereIn('id', $request->roles)->pluck('name');
         $user->syncRoles($roles);
@@ -61,14 +59,13 @@ class UserController extends Controller
         $tokenMessage = '';
         if ($request->generate_token) {
             $token = $user->createToken('api-token')->plainTextToken;
-            $tokenMessage = ' | Token API: '.$token;
+            $tokenMessage = ' | Token API: ' . $token;
         }
 
         return redirect()->route('users.index')
-            ->with('success', 'Usuario creado correctamente'.$tokenMessage)
+            ->with('success', 'Usuario creado correctamente' . $tokenMessage)
             ->with('token', $request->generate_token ? $token : null);
     }
-
 
     /**
      * Display the specified resource.
@@ -95,44 +92,24 @@ class UserController extends Controller
     {
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,'.$user->id],
-            'password' => ['nullable', 'confirmed', Rules\Password::defaults()],
-            'group_id' => ['required', 'exists:groups,id'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:' . User::class . ',id,' . $user->id],
+            'groups' => ['required', 'array'],
+            'groups.*' => ['exists:groups,id'],
             'roles' => ['required', 'array'],
             'roles.*' => ['exists:roles,id'],
-            'generate_token' => ['nullable', 'boolean'],
-            'revoke_tokens' => ['nullable', 'boolean']
         ]);
 
         $user->update([
             'name' => $request->name,
             'email' => $request->email,
-            'group_id' => $request->group_id,
         ]);
 
-        if ($request->password) {
-            $user->update(['password' => Hash::make($request->password)]);
-        }
+        $user->groups()->sync($request->groups); // Sincronizar grupos
 
         $roles = Role::whereIn('id', $request->roles)->pluck('name');
         $user->syncRoles($roles);
 
-        $tokenMessage = '';
-        if ($request->generate_token) {
-            // Revoke existing tokens first if needed
-            if ($request->revoke_tokens) {
-                $user->tokens()->delete();
-            }
-            $token = $user->createToken('api-token')->plainTextToken;
-            $tokenMessage = ' | Nuevo Token API: '.$token;
-        } elseif ($request->revoke_tokens) {
-            $user->tokens()->delete();
-            $tokenMessage = ' | Todos los tokens revocados';
-        }
-
-        return redirect()->route('users.index')
-            ->with('success', 'Usuario actualizado correctamente'.$tokenMessage)
-            ->with('token', $request->generate_token ? $token : null);
+        return redirect()->route('users.index')->with('success', 'Usuario actualizado correctamente');
     }
 
     /**
@@ -141,6 +118,6 @@ class UserController extends Controller
     public function destroy(User $user)
     {
         $user->delete();
-        return redirect()->route('users.index')->with('success', 'Usuario eliminado correctamente.');
+        return redirect()->route('users.index')->with('success', 'Usuario eliminado correctamente');
     }
 }

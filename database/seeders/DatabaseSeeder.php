@@ -22,7 +22,7 @@ class DatabaseSeeder extends Seeder
             ],
             'Accidentes y enfermedades' => [
                 'seguros' => ['Gastos Médicos Mayores', 'Accidentes Personales', 'Accidentes Personales Escolares'],
-                'companias' => ['HDI Seguros', 'Banorte Seguros', 'Metlife', 'Alianz', 'BUPA', 'Thona Seguros', 'General de Seguros', 'Atlas Seguros']
+                'companias' => ['HDI Seguros', 'Banorte Seguros', 'Metlife', 'Allianz', 'BUPA', 'Thona Seguros', 'General de Seguros', 'Atlas Seguros']
             ],
             'Automóviles' => [
                 'seguros' => ['Autos pickup', 'Camiones', 'Tractos'],

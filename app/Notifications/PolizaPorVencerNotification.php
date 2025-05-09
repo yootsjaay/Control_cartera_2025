@@ -27,37 +27,40 @@ class PolizaPorVencerNotification extends Notification implements ShouldQueue
     }
 
    // Mantén tu código actual pero mejora el toMail:
-public function toMail($notifiable)
+   public function toMail($notifiable)
 {
-    $polizaPath = 'polizas_organizadas/' . 
-                 $this->poliza->seguro->nombre . '/' . 
-                 $this->poliza->compania->nombre . '/' . 
-                 $this->poliza->ramo->nombre . '/' . 
-                 "Poliza_{$this->poliza->id}.pdf";
+    // Verifica si el usuario pertenece a los grupos adecuados (sin necesidad de definir grupos estáticos)
+    if ($this->shouldNotify($notifiable)) {
+        $polizaPath = 'polizas_organizadas/' . 
+                     $this->poliza->seguro->nombre . '/' . 
+                     $this->poliza->compania->nombre . '/' . 
+                     $this->poliza->ramo->nombre . '/' . 
+                     "Poliza_{$this->poliza->id}.pdf";
 
-    return (new MailMessage)
-        ->subject("⚠️ Póliza por vencer: {$this->poliza->numeros_poliza->numero_poliza}")
-        ->greeting("Hola {$notifiable->name}")
-        ->line("La póliza del cliente {$this->poliza->nombre_cliente} está por vencer.")
-        ->line("**Días restantes:** {$this->diasRestantes} días")
-        ->line("**Fecha de vencimiento:** {$this->poliza->vigencia_fin->format('d/m/Y')}")
-        ->line("**Compañía:** {$this->poliza->compania->nombre}")
-        ->line("**Ramo:** {$this->poliza->ramo->nombre}")
-        ->action('Ver detalles de la póliza', url("/polizas/{$this->poliza->id}"))
-        ->attach(storage_path('app/public/' . $polizaPath))
-        ->salutation('Saludos,');
+        return (new MailMessage)
+            ->subject("⚠️ Póliza por vencer: {$this->poliza->numeros_poliza->numero_poliza}")
+            ->greeting("Hola {$notifiable->name}")
+            ->line("La póliza del cliente {$this->poliza->nombre_cliente} está por vencer.")
+            ->line("**Días restantes:** {$this->diasRestantes} días")
+            ->line("**Fecha de vencimiento:** {$this->poliza->vigencia_fin->format('d/m/Y')}")
+            ->line("**Compañía:** {$this->poliza->compania->nombre}")
+            ->line("**Ramo:** {$this->poliza->ramo->nombre}")
+            ->action('Ver detalles de la póliza', url("/polizas/{$this->poliza->id}"))
+            ->attach(storage_path('app/public/' . $polizaPath))
+            ->salutation('Saludos,');
+    }
+
+    // Si no debe ser notificado, no se envía nada
+    return null;
 }
 
-    public function toArray($notifiable)
-    {
-        return [
-            'poliza_id' => $this->poliza->id,
-            'numero_poliza' => $this->poliza->numeros_poliza->numero_poliza,
-            'cliente' => $this->poliza->nombre_cliente,
-            'dias_restantes' => $this->diasRestantes,
-            'fecha_vencimiento' => $this->poliza->vigencia_fin->format('d/m/Y'),
-            'link' => url("/polizas/{$this->poliza->id}"),
-            'tipo' => 'poliza_por_vencer'
-        ];
-    }
+protected function shouldNotify($notifiable)
+{
+    // Consultamos si el usuario pertenece a cualquier grupo relacionado con las pólizas
+    // en lugar de tener un arreglo estático de grupos permitidos
+    return $notifiable->groups()->exists();
+}
+
+
+
 }

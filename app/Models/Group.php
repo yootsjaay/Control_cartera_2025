@@ -18,7 +18,6 @@ use Illuminate\Database\Eloquent\Model;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
- * @property Collection|Poliza[] $polizas
  * @property Collection|User[] $users
  *
  * @package App\Models
@@ -31,13 +30,15 @@ class Group extends Model
 		'nombre'
 	];
 
-	public function polizas()
-	{
-		return $this->hasMany(Poliza::class);
-	}
-
 	public function users()
 	{
-		return $this->hasMany(User::class);
+		return $this->belongsToMany(User::class, 'user_group')
+					->withPivot('id')
+					->withTimestamps();
 	}
+	public function polizas()
+{
+    return $this->belongsToMany(Poliza::class, 'group_poliza');
+}
+
 }

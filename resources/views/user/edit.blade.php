@@ -13,23 +13,6 @@
                 @csrf
                 @method('PUT')
 
-                {{-- ... (código existente) --}}
-<div class="form-group">
-    <label>Opciones de Token API:</label>
-    <div class="form-check">
-        <input class="form-check-input" type="checkbox" name="generate_token" id="generate_token" value="1">
-        <label class="form-check-label" for="generate_token">
-            Generar nuevo token de acceso API
-        </label>
-    </div>
-    <div class="form-check">
-        <input class="form-check-input" type="checkbox" name="revoke_tokens" id="revoke_tokens" value="1">
-        <label class="form-check-label" for="revoke_tokens">
-            Revocar todos los tokens existentes
-        </label>
-    </div>
-</div>
-{{-- ... (código existente) --}}
                 <div class="form-group">
                     <label for="name">Nombre:</label>
                     <input type="text" name="name" id="name" class="form-control" value="{{ $user->name }}" required>
@@ -47,10 +30,10 @@
                     <input type="password" name="password_confirmation" id="password_confirmation" class="form-control">
                 </div>
                 <div class="form-group">
-                    <label for="group_id">Grupo:</label>
-                    <select name="group_id" id="group_id" class="form-control" required>
+                    <label>Grupos:</label>
+                    <select name="groups[]" class="form-control" multiple required>
                         @foreach($groups as $group)
-                            <option value="{{ $group->id }}" {{ $user->group_id == $group->id ? 'selected' : '' }}>{{ $group->nombre }}</option>
+                            <option value="{{ $group->id }}" {{ $user->groups->contains($group->id) ? 'selected' : '' }}>{{ $group->nombre }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -65,6 +48,22 @@
                         </div>
                     @endforeach
                 </div>
+                <div class="form-group">
+                    <label>Opciones de Token API:</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="generate_token" id="generate_token" value="1">
+                        <label class="form-check-label" for="generate_token">
+                            Generar nuevo token de acceso API
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="revoke_tokens" id="revoke_tokens" value="1">
+                        <label class="form-check-label" for="revoke_tokens">
+                            Revocar todos los tokens existentes
+                        </label>
+                    </div>
+                </div>
+
                 <button type="submit" class="btn btn-primary">Actualizar</button>
                 <a href="{{ route('users.index') }}" class="btn btn-secondary">Cancelar</a>
             </form>

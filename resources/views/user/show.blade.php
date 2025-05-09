@@ -14,7 +14,7 @@
                     <p><strong>ID:</strong> {{ $user->id }}</p>
                     <p><strong>Nombre:</strong> {{ $user->name }}</p>
                     <p><strong>Email:</strong> {{ $user->email }}</p>
-                    <p><strong>Grupo:</strong> {{ $user->group->nombre ?? 'Sin grupo' }}</p>
+                    <p><strong>Grupo:</strong> {{ $user->user_group->group_id->nombre ?? 'Sin grupo' }}</p>
                 </div>
                 <div class="col-md-6">
                     <p><strong>Roles:</strong></p>

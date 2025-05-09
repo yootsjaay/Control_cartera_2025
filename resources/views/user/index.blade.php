@@ -43,7 +43,15 @@
                         <td>{{ $user->id }}</td>
                         <td>{{ $user->name }}</td>
                         <td>{{ $user->email }}</td>
-                        <td>{{ $user->group->nombre ?? 'Sin grupo' }}</td>
+                        <td>
+                        @if($user->groups->isNotEmpty())
+                            @foreach($user->groups as $group)
+                                <span class="badge badge-secondary">{{ $group->nombre }}</span>
+                            @endforeach
+                        @else
+                            Sin grupo
+                        @endif
+                    </td>
                         <td>
                             @foreach($user->roles as $role)
                                 <span class="badge badge-primary">{{ $role->name }}</span>

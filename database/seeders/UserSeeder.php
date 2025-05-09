@@ -42,16 +42,12 @@ class UserSeeder extends Seeder
 
         // 👤 Crear usuario admin
         $adminUser = User::firstOrCreate([
-            'email' => 'brbicap18@gmail.com'
+            'email' => 'cardozob761218@gmail.com'
         ], [
             'name' => 'admin',
             'password' => Hash::make('cardozo@24'),
-            'group_id' => $internos->id,
         ]);
         $adminUser->assignRole('admin');
-
-        // 🔐 Crear token para el admin (opcional)
-        $token = $adminUser->createToken('token-admin')->plainTextToken;
-        echo "TOKEN PARA PYTHON (ADMIN): $token\n";
+        $adminUser->groups()->attach($internos->id); // Asignar el grupo 'Internos'
     }
 }

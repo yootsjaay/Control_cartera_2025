@@ -9,7 +9,6 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
-use App\Traits\BelongsToGroup;
 
 /**
  * Class Poliza
@@ -20,7 +19,6 @@ use App\Traits\BelongsToGroup;
  * @property int $numero_poliza_id
  * @property int $compania_id
  * @property int $user_id
- * @property int|null $group_id
  * @property string $nombre_cliente
  * @property Carbon $vigencia_inicio
  * @property Carbon $vigencia_fin
@@ -33,7 +31,6 @@ use App\Traits\BelongsToGroup;
  * @property Carbon|null $updated_at
  * 
  * @property Compania $compania
- * @property Group|null $group
  * @property NumerosPoliza $numeros_poliza
  * @property Ramo $ramo
  * @property Seguro $seguro
@@ -44,7 +41,6 @@ use App\Traits\BelongsToGroup;
  */
 class Poliza extends Model
 {
-	use BelongsToGroup;
 	protected $table = 'polizas';
 
 	protected $casts = [
@@ -53,7 +49,6 @@ class Poliza extends Model
 		'numero_poliza_id' => 'int',
 		'compania_id' => 'int',
 		'user_id' => 'int',
-		'group_id' => 'int',
 		'vigencia_inicio' => 'datetime',
 		'vigencia_fin' => 'datetime',
 		'prima_total' => 'float',
@@ -66,7 +61,6 @@ class Poliza extends Model
 		'numero_poliza_id',
 		'compania_id',
 		'user_id',
-		'group_id',
 		'nombre_cliente',
 		'vigencia_inicio',
 		'vigencia_fin',
@@ -80,11 +74,6 @@ class Poliza extends Model
 	public function compania()
 	{
 		return $this->belongsTo(Compania::class);
-	}
-
-	public function group()
-	{
-		return $this->belongsTo(Group::class);
 	}
 
 	public function numeros_poliza()
@@ -111,4 +100,9 @@ class Poliza extends Model
 	{
 		return $this->hasMany(PagosFraccionado::class);
 	}
+	public function groups()
+{
+    return $this->belongsToMany(Group::class, 'group_poliza');
+}
+
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+
 use App\Models\Compania;
 use App\Models\NumerosPoliza;
 use App\Models\Poliza;
@@ -11,19 +12,18 @@ use App\Models\Seguro;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
-use Illuminate\Validation\Rule; // <-- Añade esta línea
-
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class PolizasController extends Controller
 {
     public function index(Request $request): View
 {
     $user = auth()->user();
-
     $query = Poliza::with([
         'ramo:id,nombre',
         'seguro:id,nombre',
@@ -31,32 +31,42 @@ class PolizasController extends Controller
         'compania:id,nombre',
         'pagos_fraccionados:id,poliza_id,importe,fecha_limite_pago',
         'user:id,name'
-
     ]);
 
-    // Aplicar filtro por grupo si no es admin
     if (!$user->hasRole('admin')) {
-        $query->where('group_id', $user->group_id);
+        // Pluck de los ids de grupos del usuario
+        $groupIds = $user->groups()->pluck('groups.id');
+
+        // Modificamos la consulta para que utilice correctamente el pluck de grupos
+        $query->where(function ($q) use ($user, $groupIds) {
+            $q->where('polizas.user_id', $user->id)
+              ->orWhereExists(function ($query) use ($groupIds) {
+                  $query->select(DB::raw(1))
+                        ->from('group_poliza')
+                        ->whereColumn('group_poliza.poliza_id', 'polizas.id')
+                        ->whereIn('group_poliza.group_id', $groupIds); // Utiliza la variable $groupIds aquí
+              });
+        });
     }
 
-    // Filtros dinámicos (fechas, compañía, etc.)
-    $this->applyFilters($query, $request);
 
-    // Paginado y orden
-    $polizas = $query->latest('vigencia_inicio')->paginate(10);
+        // Filtros dinámicos (fechas, compañía, etc.)
+        $this->applyFilters($query, $request);
 
-    // Datos para los filtros
-    $companias = Compania::orderBy('nombre')->get(['id', 'nombre']);
-    $tiposPrima = Poliza::distinct()->pluck('tipo_prima');
+        // Paginado y orden
+        $polizas = $query->latest('vigencia_inicio')->paginate(10);
 
-    return view('polizas.index', [
-        'polizas' => $polizas,
-        'companias' => $companias,
-        'tiposPrima' => $tiposPrima,
-        'filters' => $request->only(['fecha_inicio', 'fecha_fin', 'companiaFilter', 'tipoFilter', 'statusFilter'])
-    ]);
-}
+        // Datos para los filtros
+        $companias = Compania::orderBy('nombre')->get(['id', 'nombre']);
+        $tiposPrima = Poliza::distinct()->pluck('tipo_prima');
 
+        return view('polizas.index', [
+            'polizas' => $polizas,
+            'companias' => $companias,
+            'tiposPrima' => $tiposPrima,
+            'filters' => $request->only(['fecha_inicio', 'fecha_fin', 'companiaFilter', 'tipoFilter', 'statusFilter'])
+        ]);
+    }
     protected function applyFilters($query, $request)
 {
     // Validar rango de fechas si ambas están presentes
@@ -151,6 +161,7 @@ class PolizasController extends Controller
     public function store(Request $request): \Illuminate\Http\RedirectResponse
     {
         $request->validate([
+            'user_id' => 'required|exists:users,id', // Asegúrate de que el user_id se proporcione y sea válido
             'ramo_id' => 'required|exists:ramos,id',
             'seguro_id' => 'required|exists:seguros,id',
             'numero_poliza_id' => 'required|exists:numeros_polizas,id',
@@ -173,13 +184,11 @@ class PolizasController extends Controller
     
     public function show(Poliza $poliza): View
     {
-        $poliza->load(['ramo', 'seguro', 'numeros_poliza', 'compania', 'pagosFraccionados']);
+        $poliza->load(['ramo', 'seguro', 'numeros_poliza', 'compania', 'pagos_fraccionados']);
         return view('polizas.show', compact('poliza'));
     }
     public function notificar(Poliza $poliza)
     {
-        // Lógica para enviar notificaciones
-        // ...
         
         return response()->json(['message' => 'Notificaciones enviadas correctamente']);
     }
@@ -197,7 +206,7 @@ class PolizasController extends Controller
 
 
     
-    public function update(Request $request, $id)
+  public function update(Request $request, $id)
 {
     $poliza = Poliza::findOrFail($id);
     

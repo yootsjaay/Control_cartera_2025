@@ -11,17 +11,7 @@
         <div class="card-body">
             <form action="{{ route('users.store') }}" method="POST">
                 @csrf
-                {{-- ... (código existente) --}}
-<div class="form-group">
-    <label for="generate_token">Generar Token API:</label>
-    <div class="form-check">
-        <input class="form-check-input" type="checkbox" name="generate_token" id="generate_token" value="1">
-        <label class="form-check-label" for="generate_token">
-            Generar token de acceso API para este usuario
-        </label>
-    </div>
-</div>
-{{-- ... (código existente) --}}
+
                 <div class="form-group">
                     <label for="name">Nombre:</label>
                     <input type="text" name="name" id="name" class="form-control" required>
@@ -39,8 +29,8 @@
                     <input type="password" name="password_confirmation" id="password_confirmation" class="form-control" required>
                 </div>
                 <div class="form-group">
-                    <label for="group_id">Grupo:</label>
-                    <select name="group_id" id="group_id" class="form-control" required>
+                    <label>Grupos:</label>
+                    <select name="groups[]" class="form-control" multiple required>
                         @foreach($groups as $group)
                             <option value="{{ $group->id }}">{{ $group->nombre }}</option>
                         @endforeach
@@ -57,6 +47,16 @@
                         </div>
                     @endforeach
                 </div>
+                <div class="form-group">
+                    <label for="generate_token">Generar Token API:</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="generate_token" id="generate_token" value="1">
+                        <label class="form-check-label" for="generate_token">
+                            Generar token de acceso API para este usuario
+                        </label>
+                    </div>
+                </div>
+
                 <button type="submit" class="btn btn-primary">Guardar</button>
                 <a href="{{ route('users.index') }}" class="btn btn-secondary">Cancelar</a>
             </form>

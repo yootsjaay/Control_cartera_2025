@@ -14,7 +14,6 @@ class User extends Authenticatable
 	protected $table = 'users';
 
 	protected $casts = [
-		'group_id' => 'int',
 		'email_verified_at' => 'datetime'
 	];
 
@@ -24,7 +23,6 @@ class User extends Authenticatable
 	];
 
 	protected $fillable = [
-		'group_id',
 		'name',
 		'email',
 		'email_verified_at',
@@ -32,13 +30,15 @@ class User extends Authenticatable
 		'remember_token'
 	];
 
-	public function group()
-	{
-		return $this->belongsTo(Group::class);
-	}
-
 	public function polizas()
 	{
 		return $this->hasMany(Poliza::class);
+	}
+
+	public function groups()
+	{
+		return $this->belongsToMany(Group::class, 'user_group')
+					->withPivot('id')
+					->withTimestamps();
 	}
 }

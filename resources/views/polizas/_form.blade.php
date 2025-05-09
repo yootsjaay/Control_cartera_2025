@@ -7,7 +7,7 @@
       enctype="multipart/form-data">
     @csrf
     @if($isEdit)
-        @method('PUT')
+        @method('PATCH')
     @endif
 
     <div class="row">
